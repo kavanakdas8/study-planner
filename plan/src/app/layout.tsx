@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AI Study Planner | Agentic Curriculum & Focus Engine",
+  title: "AI Study Planner | Enterprise Obsidian SaaS",
   description:
-    "High-productivity AI study planner and adaptive curriculum dashboard powered by Gemini.",
+    "Autonomous AI study curriculum planner and focus roadmap engine built for deep learning.",
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} dark h-full antialiased`}
     >
-      <body className={`${inter.className} min-h-full bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200`}>
+      <body className={`${inter.className} min-h-full bg-[#0a0a0c] text-slate-100 flex flex-col selection:bg-[#ea580c]/30 selection:text-orange-200`}>
         {children}
       </body>
     </html>

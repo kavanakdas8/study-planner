@@ -2,6 +2,7 @@
 
 import React from "react";
 import {
+  Table2,
   Columns,
   ListTree,
   Search,
@@ -13,9 +14,11 @@ import {
   Layers,
 } from "lucide-react";
 
+export type ViewMode = "table" | "timeline" | "kanban";
+
 interface FilterBarProps {
-  viewMode: "timeline" | "kanban";
-  onViewModeChange: (mode: "timeline" | "kanban") => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   resourceFilter: string;
@@ -24,7 +27,7 @@ interface FilterBarProps {
 }
 
 const RESOURCE_FILTERS = [
-  { id: "All", label: "All", icon: Layers },
+  { id: "All", label: "All Tasks", icon: Layers },
   { id: "Exercise", label: "Exercises", icon: Terminal },
   { id: "Doc", label: "Documentation", icon: BookOpen },
   { id: "Video", label: "Videos", icon: PlayCircle },
@@ -41,15 +44,30 @@ export function FilterBar({
   searchInputRef,
 }: FilterBarProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0D111B] border border-slate-800/80 p-2.5 rounded-xl backdrop-blur-md">
-      {/* Left: View Mode Switcher */}
-      <div className="flex items-center gap-1 bg-[#070A11] p-1 rounded-lg border border-slate-800/80 shrink-0">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#121316] border border-[#1f2128] p-2.5 rounded-xl backdrop-blur-md">
+      {/* Left: View Mode Switcher (Table / Timeline / Kanban) */}
+      <div className="flex items-center gap-1 bg-[#0a0a0c] p-1 rounded-lg border border-[#1f2128] shrink-0">
+        <button
+          type="button"
+          onClick={() => onViewModeChange("table")}
+          title="High-density Data Table View"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer ${
+            viewMode === "table"
+              ? "bg-[#f97316] text-white shadow-sm font-semibold"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Table2 className="w-3.5 h-3.5" />
+          <span>Table</span>
+        </button>
+
         <button
           type="button"
           onClick={() => onViewModeChange("timeline")}
+          title="Milestone Timeline View"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer ${
             viewMode === "timeline"
-              ? "bg-indigo-600 text-white shadow-sm font-semibold"
+              ? "bg-[#f97316] text-white shadow-sm font-semibold"
               : "text-slate-400 hover:text-white"
           }`}
         >
@@ -60,9 +78,10 @@ export function FilterBar({
         <button
           type="button"
           onClick={() => onViewModeChange("kanban")}
+          title="Kanban Board View"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer ${
             viewMode === "kanban"
-              ? "bg-indigo-600 text-white shadow-sm font-semibold"
+              ? "bg-[#f97316] text-white shadow-sm font-semibold"
               : "text-slate-400 hover:text-white"
           }`}
         >
@@ -83,8 +102,8 @@ export function FilterBar({
               onClick={() => onResourceFilterChange(res.id)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer border ${
                 isSelected
-                  ? "bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-semibold"
-                  : "bg-[#070A11] border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                  ? "bg-[#ea580c]/20 border-[#ea580c]/50 text-[#f97316] font-semibold"
+                  : "bg-[#0a0a0c] border-[#1f2128] text-slate-400 hover:text-white hover:border-[#2a2d36]"
               }`}
             >
               <Icon className="w-3 h-3" />
@@ -94,7 +113,7 @@ export function FilterBar({
         })}
       </div>
 
-      {/* Right: Search Input */}
+      {/* Right: Quick Search Input */}
       <div className="relative min-w-[180px] sm:min-w-[220px]">
         <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
         <input
@@ -103,13 +122,13 @@ export function FilterBar({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Filter roadmap (/)..."
-          className="w-full bg-[#070A11] border border-slate-800 rounded-lg pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+          className="w-full bg-[#0a0a0c] border border-[#1f2128] rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#ea580c] transition"
         />
         {searchQuery && (
           <button
             type="button"
             onClick={() => onSearchChange("")}
-            className="absolute right-2.5 top-2 text-slate-500 hover:text-slate-300"
+            className="absolute right-2.5 top-2 text-slate-500 hover:text-white"
           >
             <X className="w-3.5 h-3.5" />
           </button>

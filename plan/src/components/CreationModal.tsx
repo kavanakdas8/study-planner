@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Sparkles, X, Loader2, ArrowRight, Clock, AlertCircle } from "lucide-react";
+import { Sparkles, X, Loader2, ArrowRight, Clock, AlertCircle, Flame } from "lucide-react";
 
 interface CreationModalProps {
   isOpen: boolean;
@@ -24,32 +24,32 @@ const PRESET_CHIPS = [
     experience_level: "Intermediate",
   },
   {
+    title: "Distributed Systems & Go",
+    timeframe: "2 Weeks",
+    daily_hours: 3,
+    experience_level: "Advanced",
+  },
+  {
     title: "Docker & Kubernetes",
     timeframe: "3 Days",
-    daily_hours: 3,
+    daily_hours: 2.5,
     experience_level: "Beginner",
   },
   {
-    title: "System Design",
-    timeframe: "2 Weeks",
-    daily_hours: 2.5,
-    experience_level: "Intermediate",
-  },
-  {
-    title: "Machine Learning & PyTorch",
+    title: "Deep Learning & PyTorch",
     timeframe: "1 Month",
     daily_hours: 2,
-    experience_level: "Beginner",
+    experience_level: "Intermediate",
   },
 ];
 
 const DURATION_OPTIONS = ["1 Day", "3 Days", "1 Week", "2 Weeks", "1 Month"];
 
 const REASONING_MESSAGES = [
-  "Analyzing prerequisites.",
-  "Structuring the learning sequence.",
-  "Balancing theory and practical exercises.",
-  "Preparing your study roadmap.",
+  "Deconstructing subject prerequisites...",
+  "Synthesizing progressive milestone nodes...",
+  "Allocating active hands-on coding exercises...",
+  "Calibrating sprint velocity and Pomodoro chunks...",
 ];
 
 export function CreationModal({
@@ -67,14 +67,14 @@ export function CreationModal({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when opened
+  // Focus input on open
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
-  // Rotate progress messages when loading
+  // Rotate simulated progress messages
   useEffect(() => {
     if (!loading) {
       setProgressMsgIdx(0);
@@ -82,11 +82,11 @@ export function CreationModal({
     }
     const interval = setInterval(() => {
       setProgressMsgIdx((prev) => (prev + 1) % REASONING_MESSAGES.length);
-    }, 2500);
+    }, 2400);
     return () => clearInterval(interval);
   }, [loading]);
 
-  // Global ESC key listener to close
+  // ESC key listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen && !loading) {
@@ -118,9 +118,9 @@ export function CreationModal({
   };
 
   const getPaceTag = (hrs: number) => {
-    if (hrs <= 1) return { label: "Micro-sprint", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" };
-    if (hrs <= 3) return { label: "Deep work", color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/25" };
-    return { label: "Intensive learning", color: "text-amber-400 bg-amber-500/10 border-amber-500/25" };
+    if (hrs <= 1) return { label: "Micro-Sprint", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" };
+    if (hrs <= 3) return { label: "Standard Pace", color: "text-[#f97316] bg-[#ea580c]/15 border-[#ea580c]/30" };
+    return { label: "Bootcamp Intensive", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" };
   };
 
   const pace = getPaceTag(dailyHours);
@@ -129,28 +129,28 @@ export function CreationModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-labelledby="command-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in"
+      aria-labelledby="creation-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
       onClick={() => {
         if (!loading) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-xl bg-[#0D111B] border border-slate-800 rounded-2xl shadow-2xl shadow-indigo-950/60 overflow-hidden"
+        className="relative w-full max-w-xl bg-[#121316] border border-[#1f2128] rounded-2xl shadow-2xl shadow-black/80 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-[#0D111B]">
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#1f2128] bg-[#0d0d11]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <Sparkles className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-[#ea580c]/15 border border-[#ea580c]/30 flex items-center justify-center text-[#f97316]">
+              <Flame className="w-4 h-4 fill-[#f97316]" />
             </div>
             <div>
-              <h2 id="command-modal-title" className="text-sm sm:text-base font-bold text-white tracking-tight">
-                New Study Plan
+              <h2 id="creation-modal-title" className="text-sm sm:text-base font-bold text-white tracking-tight">
+                Generate Curriculum Roadmap
               </h2>
-              <p className="text-xs text-slate-400">
-                AI curriculum generator &amp; time-boxed roadmap
+              <p className="text-xs text-[#9ca3af]">
+                Autonomous AI planner engine powered by Gemini
               </p>
             </div>
           </div>
@@ -159,7 +159,7 @@ export function CreationModal({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#181a1f] transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -169,8 +169,8 @@ export function CreationModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto scrollbar-thin">
           {/* Quick Preset Chips */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Preset Tracks
+            <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Curriculum Tracks
             </label>
             <div className="flex flex-wrap gap-1.5">
               {PRESET_CHIPS.map((chip, idx) => (
@@ -181,8 +181,8 @@ export function CreationModal({
                   disabled={loading}
                   className={`text-xs px-2.5 py-1 rounded-lg border transition cursor-pointer ${
                     topic === chip.title
-                      ? "bg-indigo-600/25 border-indigo-500/60 text-indigo-300 font-medium"
-                      : "bg-[#070A11] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      ? "bg-[#ea580c]/20 border-[#ea580c]/60 text-[#f97316] font-semibold"
+                      : "bg-[#0a0a0c] border-[#1f2128] text-slate-400 hover:text-white hover:border-[#2a2d36]"
                   }`}
                 >
                   {chip.title}
@@ -191,10 +191,10 @@ export function CreationModal({
             </div>
           </div>
 
-          {/* Learning Goal Topic */}
+          {/* Goal Topic Input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-200 mb-1.5">
-              What do you want to learn?
+            <label className="block text-xs font-semibold text-white mb-1.5">
+              What subject or technology do you want to master?
             </label>
             <input
               ref={inputRef}
@@ -203,18 +203,18 @@ export function CreationModal({
               disabled={loading}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. Distributed Systems in Go, System Design, Kubernetes"
-              className="w-full bg-[#070A11] border border-slate-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition"
+              placeholder="e.g. Distributed Systems in Go, Next.js Architecture, Kubernetes"
+              className="w-full bg-[#0a0a0c] border border-[#1f2128] focus:border-[#ea580c] rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none transition"
             />
           </div>
 
-          {/* Duration Segmented Options */}
+          {/* Timeframe Segmented Grid */}
           <div>
-            <label className="block text-xs font-semibold text-slate-200 mb-1.5 flex items-center justify-between">
-              <span>Duration</span>
-              <span className="text-[10px] text-slate-400 font-mono">Daily vs. Weekly breakdowns</span>
+            <label className="block text-xs font-semibold text-white mb-1.5 flex items-center justify-between">
+              <span>Target Timeframe</span>
+              <span className="text-[10px] text-slate-400 font-mono">Sprint velocity</span>
             </label>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 bg-[#070A11] p-1 rounded-xl border border-slate-800/80">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 bg-[#0a0a0c] p-1 rounded-xl border border-[#1f2128]">
               {DURATION_OPTIONS.map((opt) => (
                 <button
                   type="button"
@@ -223,8 +223,8 @@ export function CreationModal({
                   disabled={loading}
                   className={`text-xs py-1.5 px-2 rounded-lg font-medium transition cursor-pointer text-center ${
                     timeframe === opt
-                      ? "bg-indigo-600 text-white shadow-sm font-semibold"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                      ? "bg-[#f97316] text-white shadow-sm font-semibold"
+                      : "text-slate-400 hover:text-white hover:bg-[#181a1f]"
                   }`}
                 >
                   {opt}
@@ -236,8 +236,8 @@ export function CreationModal({
           {/* Daily Commitment Slider */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-indigo-400" /> Daily Commitment
+              <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#f97316]" /> Daily Study Hours
               </label>
               <div className="flex items-center gap-2">
                 <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${pace.color}`}>
@@ -256,18 +256,18 @@ export function CreationModal({
               disabled={loading}
               value={dailyHours}
               onChange={(e) => setDailyHours(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-[#070A11] rounded-lg appearance-none cursor-pointer accent-indigo-500 border border-slate-800"
+              className="w-full h-1.5 bg-[#0a0a0c] rounded-lg appearance-none cursor-pointer accent-[#f97316] border border-[#1f2128]"
             />
             <div className="flex justify-between text-[10px] text-slate-400 font-mono mt-1">
               <span>0.5h (Sprint)</span>
-              <span>2.0h (Deep work)</span>
-              <span>4.0h+ (Intensive)</span>
+              <span>2.0h (Standard)</span>
+              <span>4.0h+ (Bootcamp)</span>
             </div>
           </div>
 
           {/* Experience Level */}
           <div>
-            <label className="block text-xs font-semibold text-slate-200 mb-1.5">
+            <label className="block text-xs font-semibold text-white mb-1.5">
               Experience Level
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -283,8 +283,8 @@ export function CreationModal({
                   disabled={loading}
                   className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
                     experienceLevel === lvl.id
-                      ? "bg-indigo-600/15 border-indigo-500/70 text-white shadow-sm"
-                      : "bg-[#070A11] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      ? "bg-[#ea580c]/15 border-[#ea580c]/70 text-white shadow-sm"
+                      : "bg-[#0a0a0c] border-[#1f2128] text-slate-400 hover:text-white hover:border-[#2a2d36]"
                   }`}
                 >
                   <div className="text-xs font-semibold">{lvl.label}</div>
@@ -302,12 +302,12 @@ export function CreationModal({
             </div>
           )}
 
-          {/* Simulated Reasoning Progress Panel */}
+          {/* Reasoning / Progress Indicator */}
           {loading && (
-            <div className="p-4 bg-indigo-950/40 border border-indigo-800/60 rounded-xl space-y-2 animate-fade-in">
-              <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold">
-                <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-                <span>Designing Curriculum...</span>
+            <div className="p-4 bg-[#0a0a0c] border border-[#ea580c]/30 rounded-xl space-y-2 animate-fade-in">
+              <div className="flex items-center gap-2 text-[#f97316] text-xs font-semibold">
+                <Loader2 className="w-4 h-4 animate-spin text-[#f97316]" />
+                <span>Gemini Reasoning &amp; Decomposition...</span>
               </div>
               <p className="text-xs text-slate-300 font-mono pl-6 animate-pulse">
                 &gt; {REASONING_MESSAGES[progressMsgIdx]}
@@ -315,20 +315,20 @@ export function CreationModal({
             </div>
           )}
 
-          {/* Action Button */}
+          {/* Action CTA */}
           <div className="pt-2">
             <button
               type="submit"
               disabled={loading || !topic.trim()}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition cursor-pointer"
+              className="w-full bg-[#f97316] hover:bg-[#ea580c] disabled:opacity-50 text-white font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 transition cursor-pointer"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Generating Plan...
+                  <Loader2 className="w-4 h-4 animate-spin" /> Synthesizing Plan...
                 </>
               ) : (
                 <>
-                  Generate Study Plan <ArrowRight className="w-4 h-4" />
+                  Generate Sprint Plan <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>

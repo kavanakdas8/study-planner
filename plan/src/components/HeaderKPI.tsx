@@ -1,19 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Clock,
   CheckCircle2,
   Calendar,
-  Timer,
-  Play,
-  Pause,
   Layers,
   Sparkles,
-  Award,
+  TrendingUp,
+  Download,
+  ChevronDown,
+  Flame,
+  Zap,
+  Sliders,
 } from "lucide-react";
 import { SavedPlan, ActiveTimer } from "@/types/study";
-import { formatMinutes, formatTimeSeconds } from "@/lib/utils";
+import { formatMinutes } from "@/lib/utils";
 
 interface HeaderKPIProps {
   plan: SavedPlan;
@@ -22,7 +24,9 @@ interface HeaderKPIProps {
   totalMinutes: number;
   activeTimer: ActiveTimer | null;
   onOpenCreateModal: () => void;
-  onResumeTimer?: () => void;
+  onExportMarkdown: () => void;
+  selectedPeriodLabel?: string;
+  onSelectPeriodLabel?: (label: string) => void;
 }
 
 export function HeaderKPI({
@@ -32,150 +36,210 @@ export function HeaderKPI({
   totalMinutes,
   activeTimer,
   onOpenCreateModal,
-  onResumeTimer,
+  onExportMarkdown,
+  selectedPeriodLabel = "All Periods",
+  onSelectPeriodLabel,
 }: HeaderKPIProps) {
+  const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false);
+
   const percentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const periodsCount = plan.schedule.length;
+  const pendingTasks = Math.max(0, totalCount - completedCount);
+  const totalHours = (totalMinutes / 60).toFixed(1);
+
+  // Curriculum Velocity label derived from daily commitment
+  const getVelocity = (hours: number) => {
+    if (hours >= 3.5) return { title: "Bootcamp", tag: "High Velocity", color: "text-[#f97316]" };
+    if (hours >= 2.0) return { title: "Optimal", tag: "Standard Pace", color: "text-emerald-400" };
+    return { title: "Micro-Sprint", tag: "Steady Velocity", color: "text-sky-400" };
+  };
+
+  const velocity = getVelocity(plan.daily_hours || 2);
+
+  const periodOptions = ["All Periods", ...plan.schedule.map((p) => p.period_label)];
 
   return (
-    <div className="space-y-4">
-      {/* Active Study Plan Banner Header */}
-      <div className="bg-[#0D111B] border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden backdrop-blur-md">
-        {/* Ambient Top Glow */}
-        <div
-          className="pointer-events-none absolute -top-12 left-1/4 w-96 h-28 opacity-25"
-          style={{
-            background: "radial-gradient(ellipse at center, rgba(99,102,241,0.5), transparent)",
-          }}
-        />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div className="space-y-2 max-w-3xl">
-            {/* Status Badge & Metadata Pills */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                Active Study Plan
+    <div className="space-y-5">
+      {/* =========================================================================
+          ROW 1: SECTION HEADER & ACTION CONTROLS
+          ========================================================================= */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
+        {/* Left: Large Bold Title & Muted Subtitle */}
+        <div className="space-y-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f97316] animate-pulse" />
+              Active Curriculum
+            </span>
+            <span className="text-[11px] font-mono text-slate-400 bg-[#121316] border border-[#1f2128] px-2 py-0.5 rounded">
+              {plan.target_timeframe}
+            </span>
+            {plan.experience_level && (
+              <span className="text-[11px] font-mono text-slate-400 bg-[#121316] border border-[#1f2128] px-2 py-0.5 rounded">
+                {plan.experience_level}
               </span>
-
-              <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/80 flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-slate-400" />
-                {plan.target_timeframe}
-              </span>
-
-              <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/80 flex items-center gap-1">
-                <Clock className="w-3 h-3 text-slate-400" />
-                {plan.daily_hours}h / day
-              </span>
-
-              {plan.experience_level && (
-                <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-800/50 text-slate-400 border border-slate-700/50 flex items-center gap-1">
-                  <Award className="w-3 h-3 text-slate-500" />
-                  {plan.experience_level}
-                </span>
-              )}
-            </div>
-
-            {/* Subject Title */}
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              {plan.subject}
-            </h1>
-
-            {/* Overview description */}
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-3xl">
-              {plan.overview}
-            </p>
+            )}
           </div>
 
-          {/* Regenerate / Reconfigure Button */}
-          <button
-            type="button"
-            onClick={onOpenCreateModal}
-            className="shrink-0 text-xs px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/80 text-slate-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer self-start"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Customize Goal</span>
-          </button>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight truncate">
+            {plan.subject}
+          </h1>
+
+          <p className="text-xs sm:text-sm text-[#9ca3af] max-w-3xl leading-relaxed">
+            {plan.overview}
+          </p>
         </div>
 
-        {/* 3 Compact Analytics Panels */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-5 mt-4 border-t border-slate-800/80">
-          {/* Panel 1: Total Study Time */}
-          <div className="p-3.5 rounded-xl bg-[#111827]/70 border border-slate-800/80 flex items-center gap-3.5">
-            <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Scheduled Study Time
-              </div>
-              <div className="font-mono text-base font-bold text-white mt-0.5">
-                {formatMinutes(totalMinutes)}
-              </div>
-              <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                <span>{totalCount} micro-tasks</span>
-                <span>•</span>
-                <span>{periodsCount} {periodsCount === 1 ? "period" : "periods"}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Panel 2: Learning Progress */}
-          <div className="p-3.5 rounded-xl bg-[#111827]/70 border border-slate-800/80 flex items-center gap-3.5">
-            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                <span>Curriculum Progress</span>
-                <span className="font-mono text-emerald-400 font-bold">{percentComplete}%</span>
-              </div>
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
-                <div
-                  className="bg-emerald-500 h-full transition-all duration-300 shadow-sm shadow-emerald-500/30"
-                  style={{ width: `${percentComplete}%` }}
-                />
-              </div>
-              <div className="text-[10px] text-slate-400 mt-1">
-                {completedCount} of {totalCount} tasks completed
-              </div>
-            </div>
-          </div>
-
-          {/* Panel 3: Focus Status */}
-          <div className="p-3.5 rounded-xl bg-[#111827]/70 border border-slate-800/80 flex items-center gap-3.5">
-            <div
-              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
-                activeTimer && activeTimer.isRunning
-                  ? "bg-amber-500/20 border-amber-500/40 text-amber-300 animate-pulse"
-                  : "bg-slate-800/70 border-slate-700/60 text-slate-400"
-              }`}
+        {/* Right-side Controls: Date/Period Dropdown + Secondary Action Button */}
+        <div className="flex items-center gap-2.5 shrink-0 self-start md:self-end">
+          {/* Date/Period Dropdown Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#121316] hover:bg-[#181a1f] border border-[#1f2128] text-xs font-medium text-slate-300 hover:text-white transition cursor-pointer"
             >
-              <Timer className="w-4 h-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Active Focus Session
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <span>{selectedPeriodLabel}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+            </button>
+
+            {periodDropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-48 bg-[#121316] border border-[#1f2128] rounded-xl shadow-2xl py-1 text-xs text-slate-300 z-40 animate-fade-in">
+                {periodOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      if (onSelectPeriodLabel) onSelectPeriodLabel(opt);
+                      setPeriodDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-1.5 text-left transition cursor-pointer flex items-center justify-between ${
+                      selectedPeriodLabel === opt
+                        ? "bg-[#ea580c]/15 text-[#f97316] font-semibold"
+                        : "hover:bg-[#181a1f] text-slate-300 hover:text-white"
+                    }`}
+                  >
+                    <span>{opt}</span>
+                    {selectedPeriodLabel === opt && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#f97316]" />
+                    )}
+                  </button>
+                ))}
               </div>
-              {activeTimer ? (
-                <div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="font-mono text-base font-bold text-amber-400">
-                      {formatTimeSeconds(activeTimer.remainingSeconds)}
-                    </span>
-                    <span className="text-[10px] text-slate-400 truncate max-w-[130px]">
-                      ({activeTimer.isRunning ? "Running" : "Paused"})
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-slate-400 truncate">
-                    {activeTimer.taskTitle}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-xs text-slate-400 mt-1">
-                  Click &quot;Focus&quot; on any task to start
-                </div>
-              )}
+            )}
+          </div>
+
+          {/* Secondary Action: Orange Outlined Export Markdown Container */}
+          <button
+            type="button"
+            onClick={onExportMarkdown}
+            title="Export full plan to markdown file"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#121316] hover:bg-[#ea580c]/10 border border-[#ea580c]/40 text-[#f97316] text-xs font-medium transition cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-[#f97316]" />
+            <span>Export Markdown</span>
+          </button>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          ROW 2: 4-COLUMN METRIC KPI CARDS
+          ========================================================================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Completion Rate */}
+        <div className="bg-[#121316] border border-[#1f2128] hover:border-[#2a2d36] rounded-xl sm:rounded-2xl p-4.5 transition-all shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-semibold text-[#9ca3af]">Completion Rate</span>
+            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <CheckCircle2 className="w-4 h-4" />
+            </span>
+          </div>
+
+          <div className="mt-3">
+            <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-mono">
+              {percentComplete}%
+            </div>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-mono font-medium">
+                <TrendingUp className="w-3 h-3" />
+                <span>+4.2% this sprint</span>
+              </span>
+              <span className="text-[11px] text-slate-500 font-mono">
+                {completedCount}/{totalCount} done
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Total Study Time */}
+        <div className="bg-[#121316] border border-[#1f2128] hover:border-[#2a2d36] rounded-xl sm:rounded-2xl p-4.5 transition-all shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-semibold text-[#9ca3af]">Total Study Time</span>
+            <span className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <Clock className="w-4 h-4" />
+            </span>
+          </div>
+
+          <div className="mt-3">
+            <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-mono">
+              {totalHours} hrs
+            </div>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="text-[11px] font-mono text-slate-400 bg-[#0a0a0c] px-2 py-0.5 rounded border border-[#1f2128]">
+                vs allocated hours
+              </span>
+              <span className="text-[11px] text-slate-500 font-mono">
+                ({plan.daily_hours}h/day)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Pending Tasks */}
+        <div className="bg-[#121316] border border-[#1f2128] hover:border-[#2a2d36] rounded-xl sm:rounded-2xl p-4.5 transition-all shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-semibold text-[#9ca3af]">Pending Tasks</span>
+            <span className="p-1.5 rounded-lg bg-[#ea580c]/10 text-[#f97316] border border-[#ea580c]/20">
+              <Layers className="w-4 h-4" />
+            </span>
+          </div>
+
+          <div className="mt-3">
+            <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-mono">
+              {pendingTasks} {pendingTasks === 1 ? "task" : "tasks"}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 text-[11px] font-mono font-medium">
+                <Flame className="w-3 h-3" />
+                <span>active today</span>
+              </span>
+              <span className="text-[11px] text-slate-500 font-mono">
+                of {totalCount} total
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Curriculum Velocity / Intensity */}
+        <div className="bg-[#121316] border border-[#1f2128] hover:border-[#2a2d36] rounded-xl sm:rounded-2xl p-4.5 transition-all shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-semibold text-[#9ca3af]">Curriculum Velocity</span>
+            <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <Zap className="w-4 h-4" />
+            </span>
+          </div>
+
+          <div className="mt-3">
+            <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              {velocity.title}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="text-[11px] font-mono text-slate-400 bg-[#0a0a0c] px-2 py-0.5 rounded border border-[#1f2128]">
+                {velocity.tag}
+              </span>
+              <span className="text-[11px] text-slate-500 font-mono">
+                {plan.schedule.length} phases
+              </span>
             </div>
           </div>
         </div>

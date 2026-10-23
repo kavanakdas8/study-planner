@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #070A11;
-  --foreground: #F1F5F9;
-  --surface-elevated: #0D111B;
-  --surface-secondary: #111827;
-  --surface-hover: #171E2E;
-  --border-primary: rgba(148, 163, 184, 0.12);
-  --border-strong: rgba(148, 163, 184, 0.22);
-  --brand-indigo: #6366F1;
-  --brand-indigo-hover: #818CF8;
-  --brand-glow: rgba(99, 102, 241, 0.16);
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
+  --background: #0a0a0c;
+  --foreground: #f8fafc;
+  --surface-card: #121316;
+  --surface-secondary: #181a1f;
+  --surface-hover: #1e2027;
+  --border-subtle: #1f2128;
+  --border-strong: #2a2d36;
+  --brand-orange: #f97316;
+  --brand-orange-hover: #ea580c;
+  --brand-orange-glow: rgba(249, 115, 22, 0.18);
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #64748b;
 }
 
 body {
@@ -23,10 +23,16 @@ body {
   overflow-x: hidden;
 }
 
+/* Dot Grid Background for Node Canvas */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.10) 1.2px, transparent 1.2px);
+  background-size: 22px 22px;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -34,12 +40,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
+  background: #1f2128;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.35);
+  background: #2e323d;
 }
 
 @keyframes fadeIn {
@@ -55,6 +61,19 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pulseSubtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

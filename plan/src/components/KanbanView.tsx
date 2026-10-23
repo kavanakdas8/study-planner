@@ -41,7 +41,7 @@ export function KanbanView({
   };
 
   return (
-    <div className="flex gap-3.5 overflow-x-auto pb-4 pt-1 snap-x scrollbar-thin">
+    <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x scrollbar-thin">
       {plan.schedule.map((period, pIdx) => {
         const filteredTasks = period.tasks.filter(matchesFilter);
         const periodTotalMinutes = period.tasks.reduce(
@@ -62,30 +62,30 @@ export function KanbanView({
         return (
           <div
             key={pIdx}
-            className="w-76 sm:w-80 shrink-0 bg-[#0D111B] border border-slate-800/80 rounded-2xl flex flex-col max-h-[75vh] backdrop-blur-md overflow-hidden snap-start shadow-sm"
+            className="w-80 shrink-0 bg-[#121316] border border-[#1f2128] rounded-2xl flex flex-col max-h-[75vh] backdrop-blur-md overflow-hidden snap-start shadow-sm"
           >
             {/* Column Header */}
-            <div className="p-3.5 border-b border-slate-800/80 bg-[#0D111B] shrink-0">
+            <div className="p-4 border-b border-[#1f2128] bg-[#121316] shrink-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded bg-indigo-600/20 text-indigo-400 font-mono text-[10px] font-bold flex items-center justify-center">
+                  <span className="w-5 h-5 rounded bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 font-mono text-[10px] font-bold flex items-center justify-center">
                     {pIdx + 1}
                   </span>
-                  <span>{period.period_label}</span>
+                  <span className="truncate">{period.period_label}</span>
                 </span>
 
-                <span className="font-mono text-[10px] text-slate-400 bg-[#070A11] px-1.5 py-0.5 rounded border border-slate-800">
+                <span className="font-mono text-[10px] text-slate-300 bg-[#0a0a0c] px-2 py-0.5 rounded border border-[#1f2128]">
                   {formatMinutes(periodTotalMinutes)}
                 </span>
               </div>
 
-              <p className="text-[11px] text-indigo-300 font-medium truncate mt-1">
+              <p className="text-[11px] text-[#9ca3af] font-medium truncate mt-1">
                 {period.topic_summary}
               </p>
 
               {/* Column Progress Bar */}
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex-1 bg-slate-800 h-1 rounded-full overflow-hidden">
+              <div className="flex items-center gap-2 mt-2.5">
+                <div className="flex-1 bg-[#0a0a0c] h-1 rounded-full overflow-hidden border border-[#1f2128]">
                   <div
                     className="bg-emerald-500 h-full transition-all duration-300"
                     style={{ width: `${periodPercent}%` }}
@@ -98,7 +98,7 @@ export function KanbanView({
             </div>
 
             {/* Column Task Cards Stack */}
-            <div className="p-2.5 overflow-y-auto space-y-2 flex-1 scrollbar-thin bg-[#070A11]/30">
+            <div className="p-3 overflow-y-auto space-y-2 flex-1 scrollbar-thin bg-[#0a0a0c]/50">
               {filteredTasks.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-500 italic">
                   No matching tasks
