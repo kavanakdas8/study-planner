@@ -78,7 +78,7 @@ export function FilterBar({
         <button
           type="button"
           onClick={() => onViewModeChange("kanban")}
-          title="Kanban Board View"
+          title="Card View"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer ${
             viewMode === "kanban"
               ? "bg-[#f97316] text-white shadow-sm font-semibold"
@@ -86,7 +86,7 @@ export function FilterBar({
           }`}
         >
           <Columns className="w-3.5 h-3.5" />
-          <span>Kanban</span>
+          <span>Card</span>
         </button>
       </div>
 

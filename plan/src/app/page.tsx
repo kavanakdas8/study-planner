@@ -5,7 +5,6 @@ import { StudyPlan, SavedPlan, ActiveTimer, Task } from "@/types/study";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
 import { HeaderKPI } from "@/components/HeaderKPI";
-import { LearningNodeGraph } from "@/components/LearningNodeGraph";
 import { TaskStreamTable } from "@/components/TaskStreamTable";
 import { FilterBar, ViewMode } from "@/components/FilterBar";
 import { TimelineView } from "@/components/TimelineView";
@@ -556,14 +555,6 @@ export default function Home() {
                     if (idx !== -1) setSelectedPeriodIndex(idx);
                   }
                 }}
-              />
-
-              {/* ROW 3: Interactive Learning Node Graph (Visual Node Canvas) */}
-              <LearningNodeGraph
-                plan={activePlan}
-                completedTasksMap={completedTasksMap}
-                selectedPeriodIndex={selectedPeriodIndex}
-                onSelectPeriodIndex={setSelectedPeriodIndex}
               />
 
               {/* Filter Bar & View Switcher */}

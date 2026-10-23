@@ -115,35 +115,6 @@ export function EmptyStateHero({
         </div>
       </div>
 
-      {/* Abstract Flow Canvas Preview */}
-      <div className="relative py-4 px-6 bg-[#121316] border border-[#1f2128] rounded-2xl overflow-hidden backdrop-blur-md bg-dot-grid">
-        <div className="flex items-center justify-between text-xs text-slate-400 font-mono mb-3">
-          <span>01. Decompose Prerequisites</span>
-          <span className="text-[#f97316] font-semibold">&gt;&gt; Time-Boxed Daily Sprints</span>
-          <span>03. Capstone Delivery</span>
-        </div>
-
-        {/* Stepper bar */}
-        <div className="relative flex items-center justify-between">
-          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-[#1f2128]" />
-          <div className="relative z-10 w-7 h-7 rounded-full bg-[#f97316] text-white flex items-center justify-center text-xs font-bold font-mono shadow-md shadow-orange-950/50">
-            1
-          </div>
-          <div className="relative z-10 w-7 h-7 rounded-full bg-[#181a1f] border border-[#ea580c]/50 text-[#f97316] flex items-center justify-center text-xs font-bold font-mono">
-            2
-          </div>
-          <div className="relative z-10 w-7 h-7 rounded-full bg-[#0a0a0c] border border-[#1f2128] text-slate-400 flex items-center justify-center text-xs font-bold font-mono">
-            3
-          </div>
-        </div>
-
-        <div className="flex justify-between text-[11px] text-slate-400 mt-2 font-mono">
-          <span>Core First Principles</span>
-          <span>70% Practical Code</span>
-          <span>Production Architecture</span>
-        </div>
-      </div>
-
       {/* Featured Preset Tracks */}
       <div id="quick-starts" className="space-y-3 pt-2">
         <div className="flex items-center justify-between px-1">
