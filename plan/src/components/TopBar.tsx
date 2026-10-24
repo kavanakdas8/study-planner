@@ -9,7 +9,6 @@ import {
   Share2,
   RotateCcw,
   MoreVertical,
-  ChevronRight,
   BookOpen,
   Check,
   Bell,
@@ -89,16 +88,8 @@ export function TopBar({
           <Menu className="w-4 h-4" />
         </button>
 
-        {/* Workspace Breadcrumbs */}
+        {/* Active Plan / Title */}
         <div className="flex items-center gap-2 text-xs min-w-0">
-          <span className="text-[#9ca3af] hidden sm:inline hover:text-white transition">
-            Platform
-          </span>
-          <ChevronRight className="hidden sm:inline w-3 h-3 text-[#1f2128] shrink-0" />
-          <span className="text-[#9ca3af] hidden md:inline hover:text-white transition">
-            Curriculum
-          </span>
-          <ChevronRight className="hidden md:inline w-3 h-3 text-[#1f2128] shrink-0" />
           <span className="text-white font-semibold truncate flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-[#f97316]" />
             <span className="truncate">
