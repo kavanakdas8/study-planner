@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import {
   Calendar,
   ChevronDown,
-  ArrowUpRight,
   FileDown,
   Loader2,
 } from "lucide-react";
@@ -100,11 +99,10 @@ export function HeaderKPI({
                         if (onSelectPeriodLabel) onSelectPeriodLabel(opt);
                         setPeriodDropdownOpen(false);
                       }}
-                      className={`w-full px-3 py-1.5 text-left transition cursor-pointer flex items-center justify-between ${
-                        selectedPeriodLabel === opt
+                      className={`w-full px-3 py-1.5 text-left transition cursor-pointer flex items-center justify-between ${selectedPeriodLabel === opt
                           ? "bg-emerald-50 text-emerald-800 font-semibold"
                           : "hover:bg-slate-50 text-slate-700"
-                      }`}
+                        }`}
                     >
                       <span className="truncate">{opt}</span>
                       {selectedPeriodLabel === opt && (
@@ -185,7 +183,6 @@ export function HeaderKPI({
               <span>{plan.daily_hours}h / day</span>
             </div>
             <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1 mt-2.5">
-              <ArrowUpRight className="w-3 h-3 text-emerald-600" />
               <span>Target: {plan.target_timeframe}</span>
             </div>
           </div>

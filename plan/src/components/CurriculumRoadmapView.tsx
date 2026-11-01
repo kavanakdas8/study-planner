@@ -10,13 +10,9 @@ import {
   UserSettings,
 } from "@/types/study";
 import {
-  CheckCircle2,
-  Clock,
   Plus,
   AlertTriangle,
-  BookOpen,
   Target,
-  Layers,
   Check,
   X,
   RefreshCw,
@@ -24,14 +20,12 @@ import {
   LayoutList,
   Columns,
   GitCommit,
-  Network,
 } from "lucide-react";
 import { playChime } from "@/lib/utils";
 import { syncCurriculumToSchedule } from "@/lib/curriculumAdapter";
 import { TaskStreamTable } from "./TaskStreamTable";
 import { KanbanView } from "./KanbanView";
 import { TimelineView } from "./TimelineView";
-import { LearningNodeGraph } from "./LearningNodeGraph";
 
 interface CurriculumRoadmapViewProps {
   plan: SavedPlan;
@@ -45,7 +39,7 @@ interface CurriculumRoadmapViewProps {
   onSearchChange: (q: string) => void;
 }
 
-type SubView = "table" | "kanban" | "timeline" | "graph" | "revisions" | "milestones";
+type SubView = "table" | "kanban" | "timeline" | "revisions" | "milestones";
 
 export function CurriculumRoadmapView({
   plan,
@@ -251,9 +245,6 @@ export function CurriculumRoadmapView({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono font-bold uppercase tracking-wider">
-                Active Roadmap
-              </span>
               <span className="text-xs text-slate-500 font-medium">
                 {plan.target_timeframe} Target
               </span>
@@ -292,9 +283,8 @@ export function CurriculumRoadmapView({
         {/* METRICS ROW */}
         <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-5">
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
-              <span>Completion</span>
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="text-[11px] text-slate-500">
+              Completion
             </div>
             <div className="text-lg font-bold font-mono text-slate-900">
               {stats.completionPct}%
@@ -308,9 +298,8 @@ export function CurriculumRoadmapView({
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
-              <span>Modules</span>
-              <Layers className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="text-[11px] text-slate-500">
+              Modules
             </div>
             <div className="text-lg font-bold font-mono text-slate-900">
               {stats.completedModules} <span className="text-xs text-slate-400 font-normal">/ {stats.totalModules}</span>
@@ -321,9 +310,8 @@ export function CurriculumRoadmapView({
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
-              <span>Topics</span>
-              <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+            <div className="text-[11px] text-slate-500">
+              Topics
             </div>
             <div className="text-lg font-bold font-mono text-slate-900">
               {stats.completedTopics} <span className="text-xs text-slate-400 font-normal">/ {stats.totalTopics}</span>
@@ -334,9 +322,8 @@ export function CurriculumRoadmapView({
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
-              <span>Remaining</span>
-              <Clock className="w-3.5 h-3.5 text-slate-500" />
+            <div className="text-[11px] text-slate-500">
+              Remaining
             </div>
             <div className="text-lg font-bold font-mono text-slate-900">
               {stats.remainingHours} <span className="text-xs text-slate-400 font-normal">hrs</span>
@@ -347,9 +334,8 @@ export function CurriculumRoadmapView({
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
-              <span>Milestones</span>
-              <Target className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="text-[11px] text-slate-500">
+              Milestones
             </div>
             <div className="text-lg font-bold font-mono text-slate-900">
               {milestones.filter((m) => m.completed).length} <span className="text-xs text-slate-400 font-normal">/ {milestones.length}</span>
@@ -360,9 +346,8 @@ export function CurriculumRoadmapView({
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
-              <span>Revisions</span>
-              <RotateCcw className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="text-[11px] text-slate-500">
+              Revisions
             </div>
             <div className="text-lg font-bold font-mono text-slate-900">
               {revisions.filter((r) => !r.completed).length} <span className="text-xs text-slate-400 font-normal">due</span>
@@ -415,19 +400,6 @@ export function CurriculumRoadmapView({
             >
               <GitCommit className="w-3.5 h-3.5" />
               <span>Timeline</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveSubView("graph")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                activeSubView === "graph"
-                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Network className="w-3.5 h-3.5" />
-              <span>Learning Graph</span>
             </button>
 
             <button
@@ -688,16 +660,6 @@ export function CurriculumRoadmapView({
           activeTimerTaskId={activeTimerTaskId}
           searchQuery={searchQuery}
           resourceFilter={resourceFilter}
-        />
-      )}
-
-      {/* VIEW: LEARNING GRAPH VIEW */}
-      {activeSubView === "graph" && (
-        <LearningNodeGraph
-          plan={plan}
-          completedTasksMap={completedTasksMap}
-          selectedPeriodIndex={selectedPeriodIndex}
-          onSelectPeriodIndex={setSelectedPeriodIndex}
         />
       )}
 

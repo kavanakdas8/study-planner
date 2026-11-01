@@ -5,17 +5,12 @@ import {
   Menu,
   Plus,
   Search,
-  Download,
-  Share2,
   RotateCcw,
   MoreVertical,
-  Check,
   Bell,
   ChevronRight,
-  FileDown,
 } from "lucide-react";
 import { SavedPlan } from "@/types/study";
-import { playChime } from "@/lib/utils";
 
 interface TopBarProps {
   activePlan: SavedPlan | null;
@@ -35,9 +30,6 @@ export function TopBar({
   activePlan,
   onOpenMobileMenu,
   onOpenCreateModal,
-  onExportPDF,
-  onExportMarkdown,
-  onExportICS,
   onClearCompleted,
   onFocusSearch,
   searchQuery = "",
@@ -45,7 +37,6 @@ export function TopBar({
 }: TopBarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [copiedICS, setCopiedICS] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -64,13 +55,6 @@ export function TopBar({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleCopyICS = () => {
-    playChime("click");
-    onExportICS();
-    setCopiedICS(true);
-    setTimeout(() => setCopiedICS(false), 2000);
-  };
 
   const isMac = typeof window !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
   const shortcutKey = isMac ? "⌘K" : "Ctrl+K";
@@ -193,56 +177,7 @@ export function TopBar({
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 text-xs text-slate-700 z-50 animate-fade-in">
-                {onExportPDF && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      onExportPDF();
-                    }}
-                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-900 font-semibold transition cursor-pointer"
-                  >
-                    <FileDown className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Export PDF (.pdf)</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDropdownOpen(false);
-                    onExportMarkdown();
-                  }}
-                  className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700 hover:text-slate-900 transition cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Export Markdown (.md)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDropdownOpen(false);
-                    handleCopyICS();
-                  }}
-                  className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700 hover:text-slate-900 transition cursor-pointer"
-                >
-                  {copiedICS ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="text-emerald-700 font-medium">Calendar Downloaded</span>
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Export iCal (.ics)</span>
-                    </>
-                  )}
-                </button>
-
-                <div className="h-px bg-slate-100 my-1" />
-
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 text-xs text-slate-700 z-50 animate-fade-in">
                 <button
                   type="button"
                   onClick={() => {
