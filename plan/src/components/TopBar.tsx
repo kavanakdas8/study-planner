@@ -89,12 +89,9 @@ export function TopBar({
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs min-w-0">
           <span className="text-slate-400 font-medium hidden sm:inline">Workspace</span>
           <ChevronRight className="w-3.5 h-3.5 text-slate-300 hidden sm:inline shrink-0" />
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="font-semibold text-slate-800 truncate">
-              {activePlan ? activePlan.subject : "Overview"}
-            </span>
-          </div>
+          <span className="font-semibold text-slate-800 truncate">
+            {activePlan ? activePlan.subject : "Overview"}
+          </span>
         </nav>
       </div>
 

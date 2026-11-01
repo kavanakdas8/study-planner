@@ -268,7 +268,7 @@ function generateDefaultRevisions(plan: SavedPlan, modules: CurriculumModule[]):
 
 /**
  * Synchronizes modifications from curriculum modules back into schedule
- * so that Dashboard, Kanban, Timeline, and Table views stay updated.
+ * so that Dashboard, Card, Timeline, and Table views stay updated.
  */
 export function syncCurriculumToSchedule(plan: SavedPlan): SavedPlan {
   if (!plan.modules) return plan;

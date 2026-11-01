@@ -5,10 +5,6 @@ import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings } f
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
 import { HeaderKPI } from "@/components/HeaderKPI";
-import { TaskStreamTable } from "@/components/TaskStreamTable";
-import { FilterBar, ViewMode } from "@/components/FilterBar";
-import { TimelineView } from "@/components/TimelineView";
-import { KanbanView } from "@/components/KanbanView";
 import { FocusTimer } from "@/components/FocusTimer";
 import { CreationModal } from "@/components/CreationModal";
 import { PlanHistorySidebar } from "@/components/PlanHistorySidebar";
@@ -17,12 +13,11 @@ import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
 import { AnalyticsView } from "@/components/AnalyticsView";
 import { ExportSyncView } from "@/components/ExportSyncView";
 import { SettingsView } from "@/components/SettingsView";
-import { exportPlanToMarkdown, downloadFile, generateICS, playChime, formatMinutes } from "@/lib/utils";
+import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
 import {
   STORAGE_KEY_PLANS,
   STORAGE_KEY_ACTIVE_ID,
   STORAGE_KEY_PROGRESS,
-  STORAGE_KEY_VIEW_MODE,
   STORAGE_KEY_SIDEBAR_COLLAPSED,
   STORAGE_KEY_ACTIVE_TIMER,
   STORAGE_KEY_SESSIONS,
@@ -35,9 +30,6 @@ import {
   Clock,
   Play,
   Check,
-  TrendingUp,
-  Target,
-  Activity,
 } from "lucide-react";
 
 const DEFAULT_SEED_PLAN: SavedPlan = {
@@ -171,8 +163,8 @@ const DEFAULT_COMPLETED_SEED: Record<string, boolean> = {
 export default function Home() {
   const [mounted, setMounted] = useState(false);
 
-  // App Shell Navigation State
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // App Shell Navigation State: default to collapsed (only logos shown on open)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [activeNavTab, setActiveNavTab] = useState("dashboard");
 
@@ -184,9 +176,7 @@ export default function Home() {
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
 
   // UI View & Filter State
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [searchQuery, setSearchQuery] = useState("");
-  const [resourceFilter, setResourceFilter] = useState("All");
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
 
   // Drawers & Modals
@@ -209,8 +199,6 @@ export default function Home() {
         const storedPlans = localStorage.getItem(STORAGE_KEY_PLANS);
         const storedActiveId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
         const storedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
-        const storedView = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as ViewMode;
-        const storedSidebar = localStorage.getItem(STORAGE_KEY_SIDEBAR_COLLAPSED);
         const storedTimer = localStorage.getItem(STORAGE_KEY_ACTIVE_TIMER);
         const storedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
         const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
@@ -246,15 +234,8 @@ export default function Home() {
           setUserSettings(JSON.parse(storedSettings));
         }
 
-        if (storedView === "table" || storedView === "timeline" || storedView === "kanban" || storedView === "analytics") {
-          setViewMode(storedView);
-        } else {
-          setViewMode("table");
-        }
-
-        if (storedSidebar !== null) {
-          setSidebarCollapsed(storedSidebar === "true");
-        }
+        // Default to collapsed rail (logos only) on open
+        setSidebarCollapsed(true);
 
         if (storedTimer) {
           const parsedTimer = JSON.parse(storedTimer) as ActiveTimer;
@@ -313,13 +294,6 @@ export default function Home() {
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(userSettings));
     } catch {}
   }, [userSettings, mounted]);
-
-  useEffect(() => {
-    if (!mounted) return;
-    try {
-      localStorage.setItem(STORAGE_KEY_VIEW_MODE, viewMode);
-    } catch {}
-  }, [viewMode, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -631,10 +605,8 @@ export default function Home() {
     );
   }
 
-  const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] flex overflow-x-hidden selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] flex selection:bg-emerald-100 selection:text-emerald-900">
       {/* Subtle Ambient Radial Glow */}
       <div
         className="pointer-events-none fixed inset-0 z-0 opacity-40"
@@ -669,7 +641,7 @@ export default function Home() {
       />
 
       {/* Main Content Workspace Shell */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen relative z-10 overflow-x-hidden">
         {/* Global Top Navbar */}
         <TopBar
           activePlan={activePlan}
@@ -763,26 +735,16 @@ export default function Home() {
                 }}
               />
 
-              {/* BALANCED TWO-COLUMN DASHBOARD SECTIONS */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* LEFT COLUMN: Today's Schedule & Upcoming Tasks & Milestones (7 cols) */}
-                <div className="lg:col-span-7 space-y-6">
-                  {/* Card 1: Today's Study Schedule & Priority Task */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-4">
+              {/* Today's Focus Schedule */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                        <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-                          Today&apos;s Focus Schedule
-                        </h2>
-                      </div>
-                      <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-medium">
-                        Target: {activePlan.daily_hours}h / day
-                      </span>
+                      <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                        Today&apos;s Focus Schedule
+                      </h2>
                     </div>
 
                     {todayPriorityTask ? (
-                      <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-3">
+                      <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1 min-w-0">
                             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 block">
@@ -811,7 +773,7 @@ export default function Home() {
                           </button>
                         </div>
 
-                        <div className="flex items-center gap-2 pt-2 border-t border-emerald-200/60 text-xs text-emerald-800">
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
                           <span className="inline-flex items-center gap-1 font-mono text-[11px]">
                             <Clock className="w-3.5 h-3.5 text-emerald-600" />
                             {todayPriorityTask.task.duration_minutes} minutes
@@ -895,256 +857,6 @@ export default function Home() {
                       </div>
                     )}
                   </div>
-
-                  {/* Card 2: Upcoming Milestones */}
-                  {activePlan.milestones && activePlan.milestones.length > 0 && (
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4 text-emerald-600" />
-                          <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-                            Target Milestones
-                          </h3>
-                        </div>
-                        <span className="text-xs text-slate-400">
-                          {activePlan.milestones.filter((m) => m.completed).length} of {activePlan.milestones.length} achieved
-                        </span>
-                      </div>
-
-                      <div className="space-y-2">
-                        {activePlan.milestones.slice(0, 3).map((ms, idx) => (
-                          <div
-                            key={ms.id}
-                            className={`p-3 rounded-lg border flex items-center justify-between gap-3 text-xs transition ${
-                              ms.completed
-                                ? "bg-emerald-50/40 border-emerald-200 text-slate-500"
-                                : "bg-slate-50 border-slate-200 text-slate-800"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span className={`w-5 h-5 rounded flex items-center justify-center font-mono text-[10px] font-bold ${
-                                ms.completed
-                                  ? "bg-emerald-600 text-white"
-                                  : "bg-slate-200 text-slate-700"
-                              }`}>
-                                {ms.completed ? "✓" : idx + 1}
-                              </span>
-                              <div className="min-w-0">
-                                <span className={`font-semibold truncate block ${ms.completed ? "line-through text-slate-400" : "text-slate-900"}`}>
-                                  {ms.title}
-                                </span>
-                                {ms.description && (
-                                  <span className="text-[10px] text-slate-400 truncate block">
-                                    {ms.description}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <span className="font-mono text-[10px] text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded shrink-0">
-                              {ms.target_date || "Continuous"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* RIGHT COLUMN: Active Session & Weekly Study Overview & Recent Activity (5 cols) */}
-                <div className="lg:col-span-5 space-y-6">
-                  {/* Card 1: Active Focus Session Status Banner */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <Activity className="w-4 h-4 text-emerald-600" />
-                        <span>Active Focus Session</span>
-                      </span>
-                      <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded ${
-                        activeTimer
-                          ? activeTimer.isRunning
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-amber-50 text-amber-700 border border-amber-200"
-                          : "bg-slate-100 text-slate-500"
-                      }`}>
-                        {activeTimer ? (activeTimer.isRunning ? "Active Live" : "Paused") : "Idle"}
-                      </span>
-                    </div>
-
-                    {activeTimer ? (
-                      <div className="space-y-3 pt-1">
-                        <div>
-                          <span className="text-[10px] font-mono uppercase text-emerald-700 font-bold block">
-                            {activeTimer.periodLabel}
-                          </span>
-                          <h4 className="text-sm font-bold text-slate-900 truncate">
-                            {activeTimer.taskTitle}
-                          </h4>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-slate-500 font-mono">
-                          <span>Elapsed: {formatMinutes(Math.round((activeTimer.totalSeconds - activeTimer.remainingSeconds) / 60))}</span>
-                          <span className="text-emerald-700 font-semibold">{Math.round(activeTimer.totalSeconds / 60)}m target</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="py-2 text-xs text-slate-500 leading-relaxed">
-                        No active timer running. Click &ldquo;Focus&rdquo; on any task to launch an integrated Pomodoro session with audio chimes.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card 2: Weekly Study Overview & Progress */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <TrendingUp className="w-4 h-4 text-emerald-600" />
-                        <span>Weekly Study Target</span>
-                      </h3>
-                      <span className="font-mono text-xs text-emerald-700 font-bold">
-                        {userSettings.study.weeklyStudyTargetHours}h / week
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span>Pace vs Target</span>
-                        <span className="font-semibold text-slate-800">
-                          {completionPercentage}% curriculum pace
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div
-                          className="bg-emerald-600 h-full rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min(100, completionPercentage)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-                        <span className="text-[10px] text-slate-400 block">Daily Target</span>
-                        <strong className="text-slate-900 font-mono">{activePlan.daily_hours} hrs</strong>
-                      </div>
-                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-                        <span className="text-[10px] text-slate-400 block">Experience Level</span>
-                        <strong className="text-slate-900 font-mono">{activePlan.experience_level || "Advanced"}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Recent Study Activity */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 text-slate-500" />
-                        <span>Recent Study Activity</span>
-                      </h3>
-                      <span className="text-[11px] text-slate-400 font-mono">
-                        {sessions.length} sessions
-                      </span>
-                    </div>
-
-                    {sessions.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic">No study sessions logged yet.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {sessions.slice(0, 3).map((s) => (
-                          <div
-                            key={s.id}
-                            className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 text-xs"
-                          >
-                            <div className="min-w-0">
-                              <span className="font-semibold text-slate-800 truncate block">
-                                {s.periodLabel || s.taskTitle}
-                              </span>
-                              <span className="text-[10px] text-slate-400 truncate block">
-                                {new Date(s.completedAt).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                            </div>
-                            <span className="font-mono text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
-                              +{s.durationMinutes}m
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Execution Filter Bar & View Switcher */}
-              <div className="pt-2">
-                <FilterBar
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  resourceFilter={resourceFilter}
-                  onResourceFilterChange={setResourceFilter}
-                  searchInputRef={searchInputRef}
-                />
-              </div>
-
-              {/* Detailed Execution Stream (Table / Timeline / Kanban / Analytics) */}
-              {viewMode === "table" ? (
-                <TaskStreamTable
-                  plan={activePlan}
-                  completedTasksMap={completedTasksMap}
-                  onToggleTask={handleToggleTask}
-                  onStartFocus={handleStartFocus}
-                  activeTimerTaskId={activeTimer ? activeTimer.taskId : null}
-                  searchQuery={searchQuery}
-                  resourceFilter={resourceFilter}
-                  selectedPeriodIndex={selectedPeriodIndex}
-                  onClearPeriodFilter={() => setSelectedPeriodIndex(null)}
-                  onViewAllClick={() => {
-                    setSelectedPeriodIndex(null);
-                    setResourceFilter("All");
-                    setSearchQuery("");
-                  }}
-                />
-              ) : viewMode === "timeline" ? (
-                <TimelineView
-                  plan={activePlan}
-                  completedTasksMap={completedTasksMap}
-                  onToggleTask={handleToggleTask}
-                  onStartFocus={handleStartFocus}
-                  activeTimerTaskId={activeTimer ? activeTimer.taskId : null}
-                  searchQuery={searchQuery}
-                  resourceFilter={resourceFilter}
-                />
-              ) : viewMode === "kanban" ? (
-                <KanbanView
-                  plan={activePlan}
-                  completedTasksMap={completedTasksMap}
-                  onToggleTask={handleToggleTask}
-                  onStartFocus={handleStartFocus}
-                  activeTimerTaskId={activeTimer ? activeTimer.taskId : null}
-                  searchQuery={searchQuery}
-                  resourceFilter={resourceFilter}
-                />
-              ) : (
-                <AnalyticsView
-                  sessions={sessions}
-                  plan={activePlan}
-                  completedTasksMap={completedTasksMap}
-                  userSettings={userSettings}
-                  onStartFocus={() => {
-                    if (activePlan?.schedule[0]?.tasks[0]) {
-                      handleStartFocus(
-                        activePlan.schedule[0].tasks[0],
-                        `${activePlan.id}_0_0`,
-                        activePlan.schedule[0].period_label
-                      );
-                    }
-                  }}
-                />
-              )}
             </div>
           ) : (
             /* Empty State Hero */

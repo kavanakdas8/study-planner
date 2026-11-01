@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   LayoutDashboard,
   MapPin,
@@ -52,6 +52,8 @@ export function AppSidebar({
   activeNavTab = "dashboard",
   onSelectNavTab,
 }: AppSidebarProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const isExpanded = !collapsed || isHovered;
   // Active plan stats for the sidebar
   const activePlan = savedPlans.find((p) => p.id === activePlanId);
   let activePlanProgress = 0;
@@ -102,12 +104,12 @@ export function AppSidebar({
             <Compass className="w-4 h-4 text-emerald-600 stroke-[2.2]" />
           </div>
 
-          {!collapsed && (
+          {isExpanded && (
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold text-slate-900 tracking-tight leading-none truncate">
+              <span className="text-sm font-bold text-slate-900 tracking-tight leading-none truncate whitespace-nowrap">
                 CuratePlan
               </span>
-              <span className="text-[10px] text-slate-400 font-medium tracking-normal mt-0.5">
+              <span className="text-[10px] text-slate-400 font-medium tracking-normal mt-0.5 whitespace-nowrap">
                 Plan Smarter. Learn Better.
               </span>
             </div>
@@ -118,10 +120,10 @@ export function AppSidebar({
         <button
           type="button"
           onClick={onToggleCollapse}
-          title={collapsed ? "Expand sidebar ([)" : "Collapse sidebar ([)"}
+          title={!collapsed ? "Collapse sidebar ([)" : "Expand sidebar ([)"}
           className="hidden md:flex p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition cursor-pointer"
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {!isExpanded ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
 
         {/* Mobile Close Button */}
@@ -144,14 +146,14 @@ export function AppSidebar({
           }}
           title={`Create Plan (${shortcutKey})`}
           className={`w-full group flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-all shadow-xs cursor-pointer ${
-            collapsed ? "justify-center px-0" : ""
+            !isExpanded ? "justify-center px-0" : ""
           }`}
         >
           <span className="flex items-center gap-2">
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            {!collapsed && <span className="font-semibold text-white">Create Plan</span>}
+            {isExpanded && <span className="font-semibold text-white whitespace-nowrap">Create Plan</span>}
           </span>
-          {!collapsed && (
+          {isExpanded && (
             <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-emerald-700/60 border border-emerald-500/40 rounded text-emerald-100">
               {shortcutKey}
             </kbd>
@@ -163,8 +165,8 @@ export function AppSidebar({
       <div className="flex-1 overflow-y-auto p-2.5 space-y-5 scrollbar-thin">
         {/* Section: WORKSPACE */}
         <div className="space-y-0.5">
-          {!collapsed && (
-            <div className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          {isExpanded && (
+            <div className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
               Workspace
             </div>
           )}
@@ -182,14 +184,14 @@ export function AppSidebar({
                   isActive
                     ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
-                } ${collapsed ? "justify-center px-0" : ""}`}
+                } ${!isExpanded ? "justify-center px-0" : ""}`}
               >
                 <Icon
                   className={`w-4 h-4 shrink-0 ${
                     isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
                   }`}
                 />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {isExpanded && <span className="truncate whitespace-nowrap">{item.label}</span>}
               </button>
             );
           })}
@@ -197,8 +199,8 @@ export function AppSidebar({
 
         {/* Section: MANAGE */}
         <div className="space-y-0.5 pt-2 border-t border-slate-100">
-          {!collapsed && (
-            <div className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          {isExpanded && (
+            <div className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
               Manage
             </div>
           )}
@@ -216,21 +218,21 @@ export function AppSidebar({
                   isActive
                     ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
-                } ${collapsed ? "justify-center px-0" : ""}`}
+                } ${!isExpanded ? "justify-center px-0" : ""}`}
               >
                 <Icon
                   className={`w-4 h-4 shrink-0 ${
                     isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
                   }`}
                 />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {isExpanded && <span className="truncate whitespace-nowrap">{item.label}</span>}
               </button>
             );
           })}
         </div>
 
         {/* Section: Saved Roadmaps */}
-        {!collapsed && (
+        {isExpanded && (
           <div className="space-y-1 pt-2 border-t border-slate-100">
             <div className="px-2.5 pb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
               <span>Saved Roadmaps</span>
@@ -296,13 +298,10 @@ export function AppSidebar({
         )}
 
         {/* Active Focus Mode Card Widget */}
-        {activeTimer && !collapsed && (
+        {activeTimer && isExpanded && (
           <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-1.5 shadow-xs">
             <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-800">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                Active Focus Session
-              </span>
+              <span>Active Focus Session</span>
               <span className="font-mono text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium">
                 {activeTimer.isRunning ? "Running" : "Paused"}
               </span>
@@ -314,7 +313,7 @@ export function AppSidebar({
         )}
 
         {/* Active Plan Progress Mini Gauge */}
-        {!collapsed && activePlan && (
+        {isExpanded && activePlan && (
           <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2">
             <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700">
               <span className="flex items-center gap-1.5 text-slate-700">
@@ -340,7 +339,7 @@ export function AppSidebar({
 
       {/* Bottom User Profile & Workspace Info */}
       <div className="p-3 border-t border-slate-200 bg-slate-50/80">
-        {!collapsed ? (
+        {isExpanded ? (
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               {/* User Avatar Circle */}
@@ -348,8 +347,8 @@ export function AppSidebar({
                 AD
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-slate-900 truncate">Alex Developer</div>
-                <div className="text-[10px] text-slate-500 truncate">Personal Workspace</div>
+                <div className="text-xs font-semibold text-slate-900 truncate whitespace-nowrap">Alex Developer</div>
+                <div className="text-[10px] text-slate-500 truncate whitespace-nowrap">Personal Workspace</div>
               </div>
             </div>
             <button
@@ -378,14 +377,24 @@ export function AppSidebar({
 
   return (
     <>
-      {/* Desktop Persistent Rail */}
+      {/* Desktop Persistent Rail - Fixed to viewport so it never scrolls away */}
       <aside
-        className={`hidden md:block transition-all duration-200 shrink-0 h-screen sticky top-0 z-30 ${
-          collapsed ? "w-16" : "w-64"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`hidden md:block transition-all duration-300 ease-in-out h-screen fixed top-0 left-0 z-40 ${
+          isExpanded ? "w-64" : "w-16"
         }`}
       >
         {sidebarContent}
       </aside>
+
+      {/* Structural Spacer: preserves layout flow beside fixed sidebar */}
+      <div
+        aria-hidden="true"
+        className={`hidden md:block shrink-0 transition-all duration-300 ease-in-out ${
+          isExpanded ? "w-64" : "w-16"
+        }`}
+      />
 
       {/* Mobile Drawer Overlay */}
       {isMobileOpen && (

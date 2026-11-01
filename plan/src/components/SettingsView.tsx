@@ -209,7 +209,7 @@ export function SettingsView({
                       className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white"
                     >
                       <option value="table">Table View</option>
-                      <option value="kanban">Kanban View</option>
+                      <option value="kanban">Card View</option>
                       <option value="timeline">Timeline View</option>
                       <option value="graph">Learning Graph View</option>
                     </select>
