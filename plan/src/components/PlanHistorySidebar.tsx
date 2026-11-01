@@ -10,7 +10,6 @@ import {
   Clock,
   Search,
   Sparkles,
-  BookOpen,
 } from "lucide-react";
 import { SavedPlan } from "@/types/study";
 

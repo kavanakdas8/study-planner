@@ -11,8 +11,6 @@ import {
   Volume2,
   Maximize2,
   Minimize2,
-  Timer as TimerIcon,
-  Flame,
 } from "lucide-react";
 import { ActiveTimer } from "@/types/study";
 import { formatTimeSeconds, playChime } from "@/lib/utils";
@@ -32,11 +30,15 @@ export function FocusTimer({
 }: FocusTimerProps) {
   const [minimized, setMinimized] = useState(false);
   const timerRef = useRef<ActiveTimer | null>(timer);
-  timerRef.current = timer;
+  useEffect(() => {
+    timerRef.current = timer;
+  }, [timer]);
+
+  const isRunning = timer?.isRunning;
 
   // Reliable drift-free timer countdown based on actual timestamp deltas
   useEffect(() => {
-    if (!timer || !timer.isRunning) return;
+    if (!isRunning) return;
 
     let lastTick = Date.now();
 
@@ -64,7 +66,7 @@ export function FocusTimer({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timer?.isRunning, onUpdate]);
+  }, [isRunning, onUpdate]);
 
   if (!timer) return null;
 

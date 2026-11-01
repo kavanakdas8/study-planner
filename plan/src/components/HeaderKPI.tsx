@@ -28,8 +28,6 @@ export function HeaderKPI({
   completedCount,
   totalCount,
   totalMinutes,
-  activeTimer,
-  onOpenCreateModal,
   onExportMarkdown,
   selectedPeriodLabel = "All Periods",
   onSelectPeriodLabel,

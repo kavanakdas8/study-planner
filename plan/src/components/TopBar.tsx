@@ -9,11 +9,8 @@ import {
   Share2,
   RotateCcw,
   MoreVertical,
-  BookOpen,
   Check,
   Bell,
-  Sparkles,
-  Command,
 } from "lucide-react";
 import { SavedPlan } from "@/types/study";
 import { playChime } from "@/lib/utils";
@@ -35,7 +32,6 @@ export function TopBar({
   activePlan,
   onOpenMobileMenu,
   onOpenCreateModal,
-  onOpenHistoryModal,
   onExportMarkdown,
   onExportICS,
   onClearCompleted,

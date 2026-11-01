@@ -184,57 +184,59 @@ export default function Home() {
 
   // Hydration load from localStorage
   useEffect(() => {
-    try {
-      const storedPlans = localStorage.getItem(STORAGE_KEY_PLANS);
-      const storedActiveId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
-      const storedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
-      const storedView = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as ViewMode;
-      const storedSidebar = localStorage.getItem(STORAGE_KEY_SIDEBAR_COLLAPSED);
-      const storedTimer = localStorage.getItem(STORAGE_KEY_ACTIVE_TIMER);
+    queueMicrotask(() => {
+      try {
+        const storedPlans = localStorage.getItem(STORAGE_KEY_PLANS);
+        const storedActiveId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
+        const storedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
+        const storedView = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as ViewMode;
+        const storedSidebar = localStorage.getItem(STORAGE_KEY_SIDEBAR_COLLAPSED);
+        const storedTimer = localStorage.getItem(STORAGE_KEY_ACTIVE_TIMER);
 
-      if (storedPlans) {
-        const parsed = JSON.parse(storedPlans) as SavedPlan[];
-        setSavedPlans(parsed);
-        if (storedActiveId && parsed.some((p) => p.id === storedActiveId)) {
-          setActivePlanId(storedActiveId);
-        } else if (parsed.length > 0) {
-          setActivePlanId(parsed[0].id);
+        if (storedPlans) {
+          const parsed = JSON.parse(storedPlans) as SavedPlan[];
+          setSavedPlans(parsed);
+          if (storedActiveId && parsed.some((p) => p.id === storedActiveId)) {
+            setActivePlanId(storedActiveId);
+          } else if (parsed.length > 0) {
+            setActivePlanId(parsed[0].id);
+          }
+        } else {
+          // First-time visit: Initialize with default enterprise seed plan
+          setSavedPlans([DEFAULT_SEED_PLAN]);
+          setActivePlanId(DEFAULT_SEED_PLAN.id);
+          setCompletedTasksMap(DEFAULT_COMPLETED_SEED);
         }
-      } else {
-        // First-time visit: Initialize with default enterprise seed plan
+
+        if (storedProgress) {
+          setCompletedTasksMap(JSON.parse(storedProgress));
+        }
+
+        if (storedView === "table" || storedView === "timeline" || storedView === "kanban") {
+          setViewMode(storedView);
+        } else {
+          setViewMode("table");
+        }
+
+        if (storedSidebar !== null) {
+          setSidebarCollapsed(storedSidebar === "true");
+        }
+
+        if (storedTimer) {
+          const parsedTimer = JSON.parse(storedTimer) as ActiveTimer;
+          setActiveTimer({
+            ...parsedTimer,
+            isRunning: false,
+          });
+        }
+      } catch {
+        // Fallback to seed plan if parsing fails
         setSavedPlans([DEFAULT_SEED_PLAN]);
         setActivePlanId(DEFAULT_SEED_PLAN.id);
-        setCompletedTasksMap(DEFAULT_COMPLETED_SEED);
+      } finally {
+        setMounted(true);
       }
-
-      if (storedProgress) {
-        setCompletedTasksMap(JSON.parse(storedProgress));
-      }
-
-      if (storedView === "table" || storedView === "timeline" || storedView === "kanban") {
-        setViewMode(storedView);
-      } else {
-        setViewMode("table");
-      }
-
-      if (storedSidebar !== null) {
-        setSidebarCollapsed(storedSidebar === "true");
-      }
-
-      if (storedTimer) {
-        const parsedTimer = JSON.parse(storedTimer) as ActiveTimer;
-        setActiveTimer({
-          ...parsedTimer,
-          isRunning: false,
-        });
-      }
-    } catch {
-      // Fallback to seed plan if parsing fails
-      setSavedPlans([DEFAULT_SEED_PLAN]);
-      setActivePlanId(DEFAULT_SEED_PLAN.id);
-    } finally {
-      setMounted(true);
-    }
+    });
   }, []);
 
   // Sync to localStorage

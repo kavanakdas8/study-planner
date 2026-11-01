@@ -9,13 +9,10 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   Plus,
   BookOpen,
   Trash2,
   X,
-  Sparkles,
-  Layers,
   Flame,
   CheckCircle2,
 } from "lucide-react";
@@ -55,7 +52,6 @@ export function AppSidebar({
   onSelectNavTab,
 }: AppSidebarProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
 
   // Active plan stats for the sidebar
   const activePlan = savedPlans.find((p) => p.id === activePlanId);
@@ -106,23 +102,10 @@ export function AppSidebar({
           </div>
 
           {!collapsed && (
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-white tracking-tight truncate">
-                  AI Study Planner
-                </span>
-                <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30">
-                  SaaS
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
-                className="text-[11px] text-[#9ca3af] hover:text-white flex items-center gap-1 transition text-left cursor-pointer truncate"
-              >
-                <span className="truncate">Sprint Workspace</span>
-                <ChevronDown className="w-3 h-3 shrink-0" />
-              </button>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs font-bold text-white tracking-tight truncate">
+                CuratePlan
+              </span>
             </div>
           )}
         </div>
@@ -370,7 +353,7 @@ export function AppSidebar({
             <div className="space-y-3 text-xs text-slate-300">
               <div>
                 <span className="font-semibold text-white block mb-0.5">Design System</span>
-                <span className="text-[#9ca3af]">Obsidian / Dark Glassmorphism SaaS</span>
+                <span className="text-[#9ca3af]">Obsidian / Dark Glassmorphism</span>
               </div>
               <div>
                 <span className="font-semibold text-white block mb-0.5">AI Engine</span>

@@ -4,8 +4,6 @@ import React, { useState } from "react";
 import {
   Check,
   Play,
-  Pause,
-  Timer,
   Clock,
   ChevronRight,
   ChevronDown,
@@ -15,8 +13,6 @@ import {
   PlayCircle,
   FileText,
   Layers,
-  Sparkles,
-  SlidersHorizontal,
 } from "lucide-react";
 import { SavedPlan, Task, ResourceType } from "@/types/study";
 import { playChime } from "@/lib/utils";

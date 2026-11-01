@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Sparkles, X, Loader2, ArrowRight, Clock, AlertCircle, Flame } from "lucide-react";
+import { X, Loader2, ArrowRight, Clock, AlertCircle, Flame } from "lucide-react";
 
 interface CreationModalProps {
   isOpen: boolean;
@@ -76,14 +76,14 @@ export function CreationModal({
 
   // Rotate simulated progress messages
   useEffect(() => {
-    if (!loading) {
-      setProgressMsgIdx(0);
-      return;
-    }
+    if (!loading) return;
     const interval = setInterval(() => {
       setProgressMsgIdx((prev) => (prev + 1) % REASONING_MESSAGES.length);
     }, 2400);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      setProgressMsgIdx(0);
+    };
   }, [loading]);
 
   // ESC key listener

@@ -2,7 +2,6 @@
 
 import React from "react";
 import {
-  Sparkles,
   ArrowRight,
   Code2,
   Container,
@@ -29,7 +28,7 @@ const PRESET_CARDS = [
   {
     icon: Code2,
     title: "Next.js & Supabase Architecture",
-    subtitle: "Enterprise fullstack SaaS roadmap",
+    subtitle: "Enterprise fullstack roadmap",
     timeframe: "1 Week",
     daily_hours: 2,
     experience_level: "Intermediate",

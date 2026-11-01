@@ -7,7 +7,6 @@ import {
   PlayCircle,
   FileText,
   Clock,
-  Timer,
   ChevronDown,
   ChevronUp,
   Check,
