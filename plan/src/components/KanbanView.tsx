@@ -61,53 +61,55 @@ export function KanbanView({
         return (
           <div
             key={pIdx}
-            className="w-80 shrink-0 bg-[#121316] border border-[#1f2128] rounded-2xl flex flex-col max-h-[75vh] backdrop-blur-md overflow-hidden snap-start shadow-sm"
+            className="w-80 shrink-0 bg-slate-100/70 border border-slate-200 rounded-xl flex flex-col max-h-[75vh] overflow-hidden snap-start shadow-2xs"
           >
             {/* Column Header */}
-            <div className="p-4 border-b border-[#1f2128] bg-[#121316] shrink-0">
+            <div className="p-3.5 border-b border-slate-200 bg-white shrink-0">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 font-mono text-[10px] font-bold flex items-center justify-center">
+                <span className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono text-[10px] font-bold flex items-center justify-center">
                     {pIdx + 1}
                   </span>
                   <span className="truncate">{period.period_label}</span>
                 </span>
 
-                <span className="font-mono text-[10px] text-slate-300 bg-[#0a0a0c] px-2 py-0.5 rounded border border-[#1f2128]">
+                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-medium">
                   {formatMinutes(periodTotalMinutes)}
                 </span>
               </div>
 
-              <p className="text-[11px] text-[#9ca3af] font-medium truncate mt-1">
+              <p className="text-[11px] text-slate-500 font-normal truncate mt-1">
                 {period.topic_summary}
               </p>
 
               {/* Column Progress Bar */}
               <div className="flex items-center gap-2 mt-2.5">
-                <div className="flex-1 bg-[#0a0a0c] h-1 rounded-full overflow-hidden border border-[#1f2128]">
+                <div className="flex-1 bg-slate-100 h-1 rounded-full overflow-hidden">
                   <div
-                    className="bg-emerald-500 h-full transition-all duration-300"
+                    className="bg-emerald-600 h-full transition-all duration-300 rounded-full"
                     style={{ width: `${periodPercent}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-mono text-emerald-400">
+                <span className="text-[10px] font-mono text-emerald-700 font-semibold">
                   {periodCompletedCount}/{period.tasks.length}
                 </span>
               </div>
             </div>
 
             {/* Column Task Cards Stack */}
-            <div className="p-3 overflow-y-auto space-y-2 flex-1 scrollbar-thin bg-[#0a0a0c]/50">
+            <div className="p-2.5 overflow-y-auto space-y-2 flex-1 scrollbar-thin">
               {filteredTasks.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-500 italic">
-                  No matching tasks
+                <div className="py-8 text-center text-xs text-slate-400 italic">
+                  No tasks matching
                 </div>
               ) : (
                 filteredTasks.map((task) => {
-                  const originalIndex = period.tasks.findIndex((t) => t === task);
-                  const taskId = `${plan.id}_${pIdx}_${originalIndex}`;
+                  const originalTaskIndex = period.tasks.findIndex(
+                    (t) => t.title === task.title
+                  );
+                  const taskId = `${plan.id}_${pIdx}_${originalTaskIndex}`;
                   const isDone = !!completedTasksMap[taskId];
-                  const isTimerRunning = activeTimerTaskId === taskId;
+                  const isTimerActive = activeTimerTaskId === taskId;
 
                   return (
                     <TaskCard
@@ -116,8 +118,10 @@ export function KanbanView({
                       taskId={taskId}
                       isCompleted={isDone}
                       onToggleComplete={() => onToggleTask(taskId)}
-                      onStartFocus={() => onStartFocus(task, taskId, period.period_label)}
-                      isTimerActive={isTimerRunning}
+                      onStartFocus={() =>
+                        onStartFocus(task, taskId, period.period_label)
+                      }
+                      isTimerActive={isTimerActive}
                     />
                   );
                 })

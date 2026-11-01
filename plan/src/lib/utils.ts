@@ -165,3 +165,120 @@ export function generateICS(plan: StudyPlan): string {
   ics.push("END:VCALENDAR");
   return ics.join("\r\n");
 }
+
+export function exportPlanToCSV(
+  plan: StudyPlan,
+  completedMap: Record<string, boolean>
+): string {
+  const headers = ["Module / Period", "Task Title", "Duration (Minutes)", "Resource Type", "Status", "Description"];
+  const rows = [headers.join(",")];
+
+  plan.schedule.forEach((period, pIdx) => {
+    period.tasks.forEach((task, tIdx) => {
+      const isDone = !!completedMap[`${pIdx}_${tIdx}`];
+      const status = isDone ? "Completed" : "Pending";
+      const cleanTitle = `"${(task.title || "").replace(/"/g, '""')}"`;
+      const cleanDesc = `"${(task.description || "").replace(/"/g, '""')}"`;
+      const cleanPeriod = `"${(period.period_label || "").replace(/"/g, '""')}"`;
+
+      rows.push([
+        cleanPeriod,
+        cleanTitle,
+        task.duration_minutes,
+        task.resource_type,
+        status,
+        cleanDesc,
+      ].join(","));
+    });
+  });
+
+  return rows.join("\r\n");
+}
+
+export function printCurriculumDocument(plan: StudyPlan, completedMap: Record<string, boolean>) {
+  if (typeof window === "undefined") return;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  let totalTasks = 0;
+  let doneTasks = 0;
+  let totalMinutes = 0;
+
+  plan.schedule.forEach((period, pIdx) => {
+    period.tasks.forEach((task, tIdx) => {
+      totalTasks++;
+      totalMinutes += task.duration_minutes || 0;
+      if (completedMap[`${pIdx}_${tIdx}`]) doneTasks++;
+    });
+  });
+
+  const pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>CuratePlan Report - ${plan.subject}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: auto; }
+          h1 { color: #059669; border-bottom: 2px solid #059669; padding-bottom: 8px; margin-bottom: 4px; }
+          .meta { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+          .overview { background: #f8fafc; border-left: 4px solid #059669; padding: 12px 16px; margin-bottom: 30px; font-size: 14px; }
+          .period { margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; page-break-inside: avoid; }
+          .period-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; color: #1e293b; }
+          .period-summary { font-size: 13px; color: #64748b; margin-bottom: 12px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          th { text-align: left; border-bottom: 2px solid #cbd5e1; padding: 6px 8px; }
+          td { border-bottom: 1px solid #f1f5f9; padding: 8px; vertical-align: top; }
+          .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; background: #fee2e2; color: #991b1b; }
+          .badge-done { background: #dcfce7; color: #166534; }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>${plan.subject}</h1>
+        <div class="meta">Target Timeframe: ${plan.target_timeframe} | Overall Progress: ${pct}% (${doneTasks}/${totalTasks} Tasks, ${(totalMinutes/60).toFixed(1)} Total Hours)</div>
+        <div class="overview">${plan.overview}</div>
+        <h2>Curriculum Schedule</h2>
+        ${plan.schedule.map((p, pIdx) => `
+          <div class="period">
+            <div class="period-title">${p.period_label}</div>
+            <div class="period-summary">${p.topic_summary}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 25px;"></th>
+                  <th>Task Title</th>
+                  <th style="width: 70px;">Duration</th>
+                  <th style="width: 110px;">Resource</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${p.tasks.map((t, tIdx) => {
+                  const isDone = !!completedMap[`${pIdx}_${tIdx}`];
+                  return `
+                    <tr>
+                      <td>${isDone ? "☑" : "☐"}</td>
+                      <td><strong>${t.title}</strong><br><span style="color:#64748b; font-size: 12px;">${t.description}</span></td>
+                      <td>${t.duration_minutes}m</td>
+                      <td><span class="badge ${isDone ? "badge-done" : ""}">${t.resource_type}</span></td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `).join("")}
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+}

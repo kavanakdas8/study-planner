@@ -7,7 +7,6 @@ import {
   Clock,
   ChevronRight,
   ChevronDown,
-  ChevronUp,
   Terminal,
   BookOpen,
   PlayCircle,
@@ -111,34 +110,34 @@ export function TaskStreamTable({
     if (lower.includes("exercise") || lower.includes("practice") || lower.includes("code")) {
       return {
         icon: <Terminal className="w-3 h-3" />,
-        className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        className: "bg-emerald-50 text-emerald-700 border-emerald-200",
         label: "Exercise",
       };
     }
     if (lower.includes("doc") || lower.includes("api") || lower.includes("ref")) {
       return {
         icon: <BookOpen className="w-3 h-3" />,
-        className: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+        className: "bg-sky-50 text-sky-700 border-sky-200",
         label: "Documentation",
       };
     }
     if (lower.includes("video") || lower.includes("tutorial") || lower.includes("watch")) {
       return {
         icon: <PlayCircle className="w-3 h-3" />,
-        className: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        className: "bg-amber-50 text-amber-700 border-amber-200",
         label: "Video",
       };
     }
     if (lower.includes("read") || lower.includes("book") || lower.includes("article")) {
       return {
         icon: <FileText className="w-3 h-3" />,
-        className: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+        className: "bg-purple-50 text-purple-700 border-purple-200",
         label: "Reading",
       };
     }
     return {
       icon: <Layers className="w-3 h-3" />,
-      className: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+      className: "bg-slate-100 text-slate-700 border-slate-200",
       label: type || "General",
     };
   };
@@ -153,210 +152,188 @@ export function TaskStreamTable({
   };
 
   return (
-    <div className="bg-[#121316] border border-[#1f2128] rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-md shadow-xl">
-      {/* Header Bar */}
-      <div className="p-4 sm:p-5 border-b border-[#1f2128] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#121316]">
-        <div className="space-y-0.5">
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+      {/* Table Header Filter Status Bar */}
+      {selectedPeriodIndex !== null && (
+        <div className="px-4 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-white tracking-tight">
-              Active Task Stream
-            </h2>
-            <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#0a0a0c] border border-[#1f2128] text-slate-400">
-              {filteredTasks.length} {filteredTasks.length === 1 ? "task" : "tasks"}
+            <span className="font-semibold text-emerald-900">
+              Filtered by Period:
             </span>
-            {selectedPeriodIndex !== null && (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 flex items-center gap-1.5">
-                <span>Phase: {plan.schedule[selectedPeriodIndex]?.period_label}</span>
-                {onClearPeriodFilter && (
-                  <button
-                    type="button"
-                    onClick={onClearPeriodFilter}
-                    className="hover:text-white ml-0.5"
-                    title="Clear phase filter"
-                  >
-                    ×
-                  </button>
-                )}
-              </span>
-            )}
+            <span className="text-emerald-700 font-medium">
+              {plan.schedule[selectedPeriodIndex]?.period_label}
+            </span>
           </div>
-          <p className="text-xs text-[#9ca3af]">
-            Execution stream synced with curriculum milestones and Pomodoro focus engine.
-          </p>
+          <button
+            type="button"
+            onClick={onClearPeriodFilter}
+            className="text-emerald-700 hover:text-emerald-900 font-semibold underline cursor-pointer"
+          >
+            Show All Periods
+          </button>
         </div>
+      )}
 
-        {/* Right-aligned View All / Filter Status */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {onViewAllClick && (
-            <button
-              type="button"
-              onClick={onViewAllClick}
-              className="text-xs text-[#f97316] hover:text-[#ea580c] font-medium flex items-center gap-1 transition cursor-pointer"
-            >
-              <span>View all</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Structured High-Density Table */}
+      {/* Main Table Container */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[700px]">
+        <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-[#0a0a0c] text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 border-b border-[#1f2128]">
-              <th className="py-3 px-4 w-[42%]">Task &amp; Objective</th>
-              <th className="py-3 px-4 w-[18%]">Type / Resource</th>
-              <th className="py-3 px-4 w-[12%]">Duration</th>
-              <th className="py-3 px-4 w-[15%]">Status</th>
-              <th className="py-3 px-4 w-[13%] text-right">Action / Focus</th>
+            <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-medium select-none">
+              <th className="py-3 px-3.5 w-10 text-center">
+                <span className="sr-only">Status</span>
+              </th>
+              <th className="py-3 px-3 w-24 font-mono text-[11px]">ID</th>
+              <th className="py-3 px-3 font-semibold text-slate-700">Task Title & Details</th>
+              <th className="py-3 px-3 w-40 hidden md:table-cell">Milestone Phase</th>
+              <th className="py-3 px-3 w-32 hidden sm:table-cell">Category</th>
+              <th className="py-3 px-3 w-24 text-right font-mono">Duration</th>
+              <th className="py-3 px-4 w-28 text-center">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1f2128]/70 text-xs text-slate-300">
+          <tbody className="divide-y divide-slate-100">
             {filteredTasks.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-slate-500 italic">
-                  No tasks match the active filters.
+                <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <p className="font-medium">No tasks found matching your filter criteria.</p>
+                  {onViewAllClick && (
+                    <button
+                      type="button"
+                      onClick={onViewAllClick}
+                      className="mt-2 text-xs text-emerald-600 hover:text-emerald-700 font-semibold underline cursor-pointer"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
               filteredTasks.map(({ task, taskId, periodLabel, code }) => {
                 const isCompleted = !!completedTasksMap[taskId];
-                const isTimerActive = activeTimerTaskId === taskId;
                 const isExpanded = !!expandedTaskIds[taskId];
+                const isTimerActive = activeTimerTaskId === taskId;
                 const badge = getResourceBadge(task.resource_type);
 
                 return (
                   <React.Fragment key={taskId}>
                     <tr
-                      className={`group hover:bg-[#181a1f] transition duration-150 ${
-                        isCompleted ? "bg-[#0d0d11]/60 opacity-70" : ""
+                      className={`group transition-colors duration-100 ${
+                        isCompleted
+                          ? "bg-slate-50/50 text-slate-400"
+                          : "hover:bg-slate-50/70 text-slate-700"
                       }`}
                     >
-                      {/* Column 1: Task & Objective */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-start gap-3">
-                          {/* Checkbox */}
+                      {/* Checkbox Column */}
+                      <td className="py-3 px-3.5 text-center align-top">
+                        <button
+                          type="button"
+                          onClick={() => handleCheckboxClick(taskId, isCompleted)}
+                          aria-label={`Mark ${task.title} as ${isCompleted ? "incomplete" : "complete"}`}
+                          className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition cursor-pointer mx-auto ${
+                            isCompleted
+                              ? "bg-emerald-600 border-emerald-600 text-white font-bold"
+                              : "border-slate-300 bg-white hover:border-emerald-500 text-transparent"
+                          }`}
+                        >
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </button>
+                      </td>
+
+                      {/* Code ID */}
+                      <td className="py-3 px-3 font-mono text-[11px] text-slate-400 align-top whitespace-nowrap">
+                        {code}
+                      </td>
+
+                      {/* Title & Accordion Toggle */}
+                      <td className="py-3 px-3 align-top min-w-[200px]">
+                        <div className="flex items-start gap-2">
                           <button
                             type="button"
-                            onClick={() => handleCheckboxClick(taskId, isCompleted)}
-                            aria-label={`Mark ${task.title} as ${
-                              isCompleted ? "incomplete" : "complete"
-                            }`}
-                            className={`mt-0.5 w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition cursor-pointer ${
-                              isCompleted
-                                ? "bg-emerald-500 border-emerald-500 text-black font-bold"
-                                : "border-slate-600 bg-[#0a0a0c] hover:border-[#f97316]"
-                            }`}
+                            onClick={() => toggleExpand(taskId)}
+                            className="mt-0.5 p-0.5 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer shrink-0"
+                            title={isExpanded ? "Collapse" : "Expand"}
                           >
-                            {isCompleted && <Check className="w-3 h-3 stroke-[3]" />}
+                            {isExpanded ? (
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            )}
                           </button>
-
-                          <div className="min-w-0 flex-1">
+                          <div className="min-w-0">
                             <span
                               onClick={() => toggleExpand(taskId)}
-                              className={`font-semibold cursor-pointer block leading-tight transition ${
+                              className={`font-semibold cursor-pointer block ${
                                 isCompleted
-                                  ? "line-through text-slate-500"
-                                  : "text-white group-hover:text-[#f97316]"
+                                  ? "line-through text-slate-400"
+                                  : "text-slate-900 hover:text-emerald-700"
                               }`}
                             >
                               {task.title}
                             </span>
-                            <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-slate-400">
-                              <span className="text-[#f97316] font-semibold">{code}</span>
-                              <span>·</span>
-                              <span className="truncate max-w-[240px]">{periodLabel}</span>
-                              <button
-                                type="button"
-                                onClick={() => toggleExpand(taskId)}
-                                className="text-slate-400 hover:text-white ml-1 inline-flex items-center gap-0.5 text-[10px]"
+                            {/* Mobile only badges */}
+                            <div className="flex sm:hidden items-center gap-1.5 mt-1.5 flex-wrap">
+                              <span
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-medium border ${badge.className}`}
                               >
-                                {isExpanded ? (
-                                  <>
-                                    <span>Hide</span>
-                                    <ChevronUp className="w-3 h-3" />
-                                  </>
-                                ) : (
-                                  <>
-                                    <span>Details</span>
-                                    <ChevronDown className="w-3 h-3" />
-                                  </>
-                                )}
-                              </button>
+                                {badge.label}
+                              </span>
+                              <span className="font-mono text-[10px] text-slate-500">
+                                {task.duration_minutes}m
+                              </span>
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Column 2: Type / Resource */}
-                      <td className="py-3 px-4">
+                      {/* Milestone Period */}
+                      <td className="py-3 px-3 text-slate-500 align-top hidden md:table-cell truncate max-w-[160px]">
+                        {periodLabel}
+                      </td>
+
+                      {/* Category Badge */}
+                      <td className="py-3 px-3 align-top hidden sm:table-cell">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${badge.className}`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${badge.className}`}
                         >
                           {badge.icon}
                           <span>{badge.label}</span>
                         </span>
                       </td>
 
-                      {/* Column 3: Duration */}
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center gap-1 font-mono text-xs text-slate-300 bg-[#0a0a0c] px-2 py-0.5 rounded border border-[#1f2128]">
-                          <Clock className="w-3 h-3 text-slate-500" />
-                          <span>{task.duration_minutes} mins</span>
+                      {/* Duration */}
+                      <td className="py-3 px-3 font-mono text-slate-600 align-top text-right whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 text-[11px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          {task.duration_minutes}m
                         </span>
                       </td>
 
-                      {/* Column 4: Status Badges */}
-                      <td className="py-3 px-4">
-                        {isCompleted ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono font-medium">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>Completed</span>
-                          </span>
-                        ) : isTimerActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 text-xs font-mono font-medium animate-pulse">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#f97316]" />
-                            <span>In Progress</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#181a1f] text-slate-400 border border-[#1f2128] text-xs font-mono">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                            <span>Pending</span>
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Column 5: Action / Focus */}
-                      <td className="py-3 px-4 text-right">
+                      {/* Action */}
+                      <td className="py-3 px-4 text-center align-top">
                         <button
                           type="button"
                           onClick={() => onStartFocus(task, taskId, periodLabel)}
-                          title="Start focus session"
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer ${
                             isTimerActive
-                              ? "bg-[#ea580c]/25 border border-[#ea580c]/50 text-[#f97316] animate-pulse"
-                              : "bg-[#ea580c]/15 hover:bg-[#ea580c]/30 text-[#f97316] border border-[#ea580c]/30"
+                              ? "bg-emerald-100 border border-emerald-300 text-emerald-800 animate-pulse"
+                              : "bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700"
                           }`}
+                          title="Start focus timer"
                         >
-                          <Play className="w-3 h-3 fill-current" />
+                          <Play className="w-2.5 h-2.5 fill-current" />
                           <span>{isTimerActive ? "Focusing" : "Focus"}</span>
                         </button>
                       </td>
                     </tr>
 
-                    {/* Collapsible Detailed Description Row */}
+                    {/* Expandable Description Row */}
                     {isExpanded && (
-                      <tr className="bg-[#0a0a0c]/90">
-                        <td colSpan={5} className="py-3 px-6 border-b border-[#1f2128]">
-                          <div className="bg-[#121316] p-3.5 rounded-xl border border-[#1f2128] space-y-1.5 animate-fade-in text-xs">
-                            <div className="flex items-center justify-between text-[11px] font-mono text-[#f97316]">
-                              <span className="font-bold uppercase">
-                                Objective &amp; Practice Instructions
-                              </span>
-                              <span>Target Duration: {task.duration_minutes} minutes</span>
-                            </div>
-                            <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                      <tr className="bg-slate-50/70">
+                        <td colSpan={7} className="py-3 px-6 sm:px-12 text-xs text-slate-700 border-b border-slate-100">
+                          <div className="bg-white border border-slate-200 rounded-lg p-3.5 space-y-1.5 shadow-2xs">
+                            <span className="font-semibold text-emerald-800 text-[11px] block">
+                              Task Instructions & Key Concepts
+                            </span>
+                            <p className="text-slate-600 leading-relaxed whitespace-pre-line text-xs">
                               {task.description}
                             </p>
                           </div>

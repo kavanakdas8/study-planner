@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { StudyPlan, SavedPlan, ActiveTimer, Task } from "@/types/study";
+import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings } from "@/types/study";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
 import { HeaderKPI } from "@/components/HeaderKPI";
@@ -13,14 +13,32 @@ import { FocusTimer } from "@/components/FocusTimer";
 import { CreationModal } from "@/components/CreationModal";
 import { PlanHistorySidebar } from "@/components/PlanHistorySidebar";
 import { EmptyStateHero } from "@/components/EmptyStateHero";
-import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
-
-const STORAGE_KEY_PLANS = "study_planner_saved_plans_v1";
-const STORAGE_KEY_ACTIVE_ID = "study_planner_active_plan_id_v1";
-const STORAGE_KEY_PROGRESS = "study_planner_completed_tasks_v1";
-const STORAGE_KEY_VIEW_MODE = "study_planner_view_mode_v1";
-const STORAGE_KEY_SIDEBAR_COLLAPSED = "study_planner_sidebar_collapsed_v1";
-const STORAGE_KEY_ACTIVE_TIMER = "study_planner_active_timer_v1";
+import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
+import { AnalyticsView } from "@/components/AnalyticsView";
+import { ExportSyncView } from "@/components/ExportSyncView";
+import { SettingsView } from "@/components/SettingsView";
+import { exportPlanToMarkdown, downloadFile, generateICS, playChime, formatMinutes } from "@/lib/utils";
+import {
+  STORAGE_KEY_PLANS,
+  STORAGE_KEY_ACTIVE_ID,
+  STORAGE_KEY_PROGRESS,
+  STORAGE_KEY_VIEW_MODE,
+  STORAGE_KEY_SIDEBAR_COLLAPSED,
+  STORAGE_KEY_ACTIVE_TIMER,
+  STORAGE_KEY_SESSIONS,
+  STORAGE_KEY_SETTINGS,
+  DEFAULT_USER_SETTINGS,
+  normalizePlanToCurriculum,
+  generateSeedSessions,
+} from "@/lib/curriculumAdapter";
+import {
+  Clock,
+  Play,
+  Check,
+  TrendingUp,
+  Target,
+  Activity,
+} from "lucide-react";
 
 const DEFAULT_SEED_PLAN: SavedPlan = {
   id: "plan_seed_enterprise_01",
@@ -162,6 +180,8 @@ export default function Home() {
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
   const [completedTasksMap, setCompletedTasksMap] = useState<Record<string, boolean>>({});
+  const [sessions, setSessions] = useState<StudySession[]>([]);
+  const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
 
   // UI View & Filter State
   const [viewMode, setViewMode] = useState<ViewMode>("table");
@@ -192,19 +212,23 @@ export default function Home() {
         const storedView = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as ViewMode;
         const storedSidebar = localStorage.getItem(STORAGE_KEY_SIDEBAR_COLLAPSED);
         const storedTimer = localStorage.getItem(STORAGE_KEY_ACTIVE_TIMER);
+        const storedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
+        const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
 
         if (storedPlans) {
           const parsed = JSON.parse(storedPlans) as SavedPlan[];
-          setSavedPlans(parsed);
-          if (storedActiveId && parsed.some((p) => p.id === storedActiveId)) {
+          const normalized = parsed.map((p) => normalizePlanToCurriculum(p));
+          setSavedPlans(normalized);
+          if (storedActiveId && normalized.some((p) => p.id === storedActiveId)) {
             setActivePlanId(storedActiveId);
-          } else if (parsed.length > 0) {
-            setActivePlanId(parsed[0].id);
+          } else if (normalized.length > 0) {
+            setActivePlanId(normalized[0].id);
           }
         } else {
           // First-time visit: Initialize with default enterprise seed plan
-          setSavedPlans([DEFAULT_SEED_PLAN]);
-          setActivePlanId(DEFAULT_SEED_PLAN.id);
+          const normalizedSeed = normalizePlanToCurriculum(DEFAULT_SEED_PLAN, DEFAULT_COMPLETED_SEED);
+          setSavedPlans([normalizedSeed]);
+          setActivePlanId(normalizedSeed.id);
           setCompletedTasksMap(DEFAULT_COMPLETED_SEED);
         }
 
@@ -212,7 +236,17 @@ export default function Home() {
           setCompletedTasksMap(JSON.parse(storedProgress));
         }
 
-        if (storedView === "table" || storedView === "timeline" || storedView === "kanban") {
+        if (storedSessions) {
+          setSessions(JSON.parse(storedSessions));
+        } else {
+          setSessions(generateSeedSessions(DEFAULT_SEED_PLAN.id));
+        }
+
+        if (storedSettings) {
+          setUserSettings(JSON.parse(storedSettings));
+        }
+
+        if (storedView === "table" || storedView === "timeline" || storedView === "kanban" || storedView === "analytics") {
           setViewMode(storedView);
         } else {
           setViewMode("table");
@@ -230,9 +264,10 @@ export default function Home() {
           });
         }
       } catch {
-        // Fallback to seed plan if parsing fails
-        setSavedPlans([DEFAULT_SEED_PLAN]);
-        setActivePlanId(DEFAULT_SEED_PLAN.id);
+        const normalizedSeed = normalizePlanToCurriculum(DEFAULT_SEED_PLAN, DEFAULT_COMPLETED_SEED);
+        setSavedPlans([normalizedSeed]);
+        setActivePlanId(normalizedSeed.id);
+        setSessions(generateSeedSessions(DEFAULT_SEED_PLAN.id));
       } finally {
         setMounted(true);
       }
@@ -264,6 +299,20 @@ export default function Home() {
       localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(completedTasksMap));
     } catch {}
   }, [completedTasksMap, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
+    } catch {}
+  }, [sessions, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(userSettings));
+    } catch {}
+  }, [userSettings, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -327,8 +376,10 @@ export default function Home() {
 
   // Active Plan Resolution
   const activePlan = useMemo(() => {
-    return savedPlans.find((p) => p.id === activePlanId) || null;
-  }, [savedPlans, activePlanId]);
+    const found = savedPlans.find((p) => p.id === activePlanId);
+    if (!found) return null;
+    return normalizePlanToCurriculum(found, completedTasksMap);
+  }, [savedPlans, activePlanId, completedTasksMap]);
 
   // Aggregate KPI stats for current plan
   const { totalCount, completedCount, totalMinutes } = useMemo(() => {
@@ -351,6 +402,25 @@ export default function Home() {
 
     return { totalCount: total, completedCount: completed, totalMinutes: minutes };
   }, [activePlan, completedTasksMap]);
+
+  // Next pending tasks for today's schedule and upcoming section
+  const pendingTasksList = useMemo(() => {
+    if (!activePlan) return [];
+    const list: Array<{ task: Task; taskId: string; periodLabel: string; periodIdx: number; taskIdx: number }> = [];
+    activePlan.schedule.forEach((period, pIdx) => {
+      period.tasks.forEach((task, tIdx) => {
+        const taskId = `${activePlan.id}_${pIdx}_${tIdx}`;
+        if (!completedTasksMap[taskId]) {
+          list.push({ task, taskId, periodLabel: period.period_label, periodIdx: pIdx, taskIdx: tIdx });
+        }
+      });
+    });
+    return list;
+  }, [activePlan, completedTasksMap]);
+
+  // Today's priority task
+  const todayPriorityTask = pendingTasksList[0] || null;
+  const upcomingTasksSlice = pendingTasksList.slice(1, 5);
 
   // API Generate Plan Handler
   const handleGeneratePlan = async (payload: {
@@ -386,8 +456,9 @@ export default function Home() {
         experience_level: payload.experience_level,
       };
 
-      setSavedPlans((prev) => [newSavedPlan, ...prev]);
-      setActivePlanId(newSavedPlan.id);
+      const normalized = normalizePlanToCurriculum(newSavedPlan);
+      setSavedPlans((prev) => [normalized, ...prev]);
+      setActivePlanId(normalized.id);
       setSelectedPeriodIndex(null);
       setIsModalOpen(false);
       playChime("complete");
@@ -401,16 +472,38 @@ export default function Home() {
 
   // Toggle single task completion
   const handleToggleTask = (taskId: string) => {
+    const nextIsDone = !completedTasksMap[taskId];
     setCompletedTasksMap((prev) => ({
       ...prev,
-      [taskId]: !prev[taskId],
+      [taskId]: nextIsDone,
     }));
+
+    if (nextIsDone && activePlan) {
+      const newSession: StudySession = {
+        id: `session_${Date.now()}`,
+        planId: activePlan.id,
+        taskId,
+        taskTitle: "Curriculum task completed",
+        subject: activePlan.subject,
+        periodLabel: activePlan.schedule[0]?.period_label || "Active Milestone",
+        startedAt: Date.now() - 35 * 60000,
+        completedAt: Date.now(),
+        durationMinutes: 35,
+        mode: "manual",
+        completed: true,
+      };
+      setSessions((prev) => [newSession, ...prev]);
+      playChime("complete");
+    } else {
+      playChime("click");
+    }
   };
 
   // Start Focus Session
   const handleStartFocus = (task: Task, taskId: string, periodLabel: string) => {
     playChime("click");
-    const seconds = (task.duration_minutes || 30) * 60;
+    const minutes = userSettings.timer.pomodoroDurationMinutes || task.duration_minutes || 25;
+    const seconds = minutes * 60;
     setActiveTimer({
       taskId,
       taskTitle: task.title,
@@ -420,6 +513,13 @@ export default function Home() {
       isRunning: true,
       lastTickAt: Date.now(),
     });
+  };
+
+  // Update Plan modifications from CurriculumRoadmapView
+  const handleUpdatePlan = (updatedPlan: SavedPlan) => {
+    setSavedPlans((prev) =>
+      prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p))
+    );
   };
 
   // Export Plan to Markdown
@@ -466,22 +566,81 @@ export default function Home() {
     }
   };
 
+  // Restore Backup Archive
+  const handleRestoreBackup = (data: {
+    plans: SavedPlan[];
+    sessions: StudySession[];
+    completedTasksMap: Record<string, boolean>;
+    settings?: UserSettings;
+  }) => {
+    if (data.plans.length > 0) {
+      const normalized = data.plans.map((p) => normalizePlanToCurriculum(p));
+      setSavedPlans(normalized);
+      setActivePlanId(normalized[0].id);
+    }
+    if (data.sessions) {
+      setSessions(data.sessions);
+    }
+    if (data.completedTasksMap) {
+      setCompletedTasksMap(data.completedTasksMap);
+    }
+    if (data.settings) {
+      setUserSettings(data.settings);
+    }
+  };
+
+  // Permanent Data Wipe
+  const handleClearAllData = () => {
+    try {
+      localStorage.clear();
+    } catch {}
+    setSavedPlans([]);
+    setActivePlanId(null);
+    setCompletedTasksMap({});
+    setSessions([]);
+    setUserSettings(DEFAULT_USER_SETTINGS);
+    setActiveTimer(null);
+    setActiveNavTab("dashboard");
+    playChime("click");
+  };
+
+  // Full backup JSON download
+  const handleExportFullBackup = () => {
+    const backup = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      generator: "CuratePlan Enterprise",
+      plans: savedPlans,
+      sessions,
+      completedTasksMap,
+      settings: userSettings,
+    };
+    downloadFile(
+      `curateplan-backup-${new Date().toISOString().split("T")[0]}.json`,
+      JSON.stringify(backup, null, 2),
+      "application/json"
+    );
+    playChime("click");
+  };
+
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center text-slate-500 font-mono text-xs">
-        Initializing Study Engine...
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-400 font-mono text-xs">
+        Initializing CuratePlan Engine...
       </div>
     );
   }
 
+  const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-slate-100 flex overflow-x-hidden selection:bg-[#ea580c]/30 selection:text-orange-200">
+    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] flex overflow-x-hidden selection:bg-emerald-100 selection:text-emerald-900">
       {/* Subtle Ambient Radial Glow */}
       <div
         className="pointer-events-none fixed inset-0 z-0 opacity-40"
         style={{
           background:
-            "radial-gradient(ellipse 80% 40% at 50% -10%, rgba(249,115,22,0.08), transparent 70%)",
+            "radial-gradient(ellipse 80% 40% at 50% -10%, rgba(5,150,105,0.06), transparent 70%)",
         }}
       />
 
@@ -493,8 +652,8 @@ export default function Home() {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         savedPlans={savedPlans}
         activePlanId={activePlanId}
-        onSelectPlan={(plan) => {
-          setActivePlanId(plan.id);
+        onSelectPlan={(p) => {
+          setActivePlanId(p.id);
           setSelectedPeriodIndex(null);
         }}
         onDeletePlan={handleDeletePlan}
@@ -528,21 +687,66 @@ export default function Home() {
           onSearchChange={setSearchQuery}
         />
 
-        {/* Dashboard Content Translation */}
+        {/* Dynamic Section Translation */}
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
-          {activePlan ? (
+          {/* SECTION 1: CURRICULUM ROADMAP */}
+          {activeNavTab === "curriculum" && activePlan ? (
+            <CurriculumRoadmapView
+              plan={activePlan}
+              completedTasksMap={completedTasksMap}
+              onToggleTask={handleToggleTask}
+              onStartFocus={handleStartFocus}
+              activeTimerTaskId={activeTimer ? activeTimer.taskId : null}
+              onUpdatePlan={handleUpdatePlan}
+              userSettings={userSettings}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+          ) : activeNavTab === "analytics" ? (
+            /* SECTION 2: ANALYTICS & PROGRESS */
+            <AnalyticsView
+              sessions={sessions}
+              plan={activePlan}
+              completedTasksMap={completedTasksMap}
+              userSettings={userSettings}
+              onStartFocus={() => {
+                if (activePlan?.schedule[0]?.tasks[0]) {
+                  handleStartFocus(
+                    activePlan.schedule[0].tasks[0],
+                    `${activePlan.id}_0_0`,
+                    activePlan.schedule[0].period_label
+                  );
+                }
+              }}
+            />
+          ) : activeNavTab === "export" ? (
+            /* SECTION 3: EXPORT & SYNC */
+            <ExportSyncView
+              plan={activePlan}
+              savedPlans={savedPlans}
+              sessions={sessions}
+              completedTasksMap={completedTasksMap}
+              userSettings={userSettings}
+              onRestoreBackup={handleRestoreBackup}
+            />
+          ) : activeNavTab === "settings" ? (
+            /* SECTION 4: SETTINGS */
+            <SettingsView
+              userSettings={userSettings}
+              onUpdateSettings={setUserSettings}
+              savedPlans={savedPlans}
+              onClearAllData={handleClearAllData}
+              onExportFullBackup={handleExportFullBackup}
+            />
+          ) : activePlan ? (
+            /* DEFAULT: DASHBOARD VIEW */
             <div className="space-y-6">
-              {/* ROW 1 & ROW 2: Header KPI & Metric Cards */}
+              {/* Header KPI & Metric Cards */}
               <HeaderKPI
                 plan={activePlan}
                 completedCount={completedCount}
                 totalCount={totalCount}
                 totalMinutes={totalMinutes}
-                activeTimer={activeTimer}
-                onOpenCreateModal={() => {
-                  setError("");
-                  setIsModalOpen(true);
-                }}
                 onExportMarkdown={handleExportMarkdown}
                 selectedPeriodLabel={
                   selectedPeriodIndex !== null
@@ -559,18 +763,334 @@ export default function Home() {
                 }}
               />
 
-              {/* Filter Bar & View Switcher */}
-              <FilterBar
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                resourceFilter={resourceFilter}
-                onResourceFilterChange={setResourceFilter}
-                searchInputRef={searchInputRef}
-              />
+              {/* BALANCED TWO-COLUMN DASHBOARD SECTIONS */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* LEFT COLUMN: Today's Schedule & Upcoming Tasks & Milestones (7 cols) */}
+                <div className="lg:col-span-7 space-y-6">
+                  {/* Card 1: Today's Study Schedule & Priority Task */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                        <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                          Today&apos;s Focus Schedule
+                        </h2>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-medium">
+                        Target: {activePlan.daily_hours}h / day
+                      </span>
+                    </div>
 
-              {/* ROW 4: Detailed Task Execution Stream */}
+                    {todayPriorityTask ? (
+                      <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 block">
+                              Next In Queue • {todayPriorityTask.periodLabel}
+                            </span>
+                            <h3 className="text-sm font-bold text-slate-900 leading-snug">
+                              {todayPriorityTask.task.title}
+                            </h3>
+                            <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                              {todayPriorityTask.task.description}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleStartFocus(
+                                todayPriorityTask.task,
+                                todayPriorityTask.taskId,
+                                todayPriorityTask.periodLabel
+                              )
+                            }
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            <span>Start Focus</span>
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2 border-t border-emerald-200/60 text-xs text-emerald-800">
+                          <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                            <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                            {todayPriorityTask.task.duration_minutes} minutes
+                          </span>
+                          <span>•</span>
+                          <span className="text-[11px] font-medium">
+                            {todayPriorityTask.task.resource_type}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleTask(todayPriorityTask.taskId)}
+                            className="ml-auto text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Mark Done</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
+                        All scheduled tasks for this curriculum are complete!
+                      </div>
+                    )}
+
+                    {/* Upcoming Tasks Section */}
+                    {upcomingTasksSlice.length > 0 && (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                          <span>Upcoming In Roadmap</span>
+                          <span className="text-[11px] text-slate-400 font-normal">
+                            {pendingTasksList.length} total pending
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {upcomingTasksSlice.map((item) => (
+                            <div
+                              key={item.taskId}
+                              className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/70 border border-slate-200 flex items-center justify-between gap-3 text-xs transition"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleTask(item.taskId)}
+                                  className="w-4 h-4 rounded border border-slate-300 hover:border-emerald-500 bg-white flex items-center justify-center transition cursor-pointer shrink-0"
+                                >
+                                  <span className="sr-only">Complete task</span>
+                                </button>
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-slate-900 truncate block">
+                                    {item.task.title}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 truncate block">
+                                    {item.periodLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="font-mono text-[10px] text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                                  {item.task.duration_minutes}m
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleStartFocus(
+                                      item.task,
+                                      item.taskId,
+                                      item.periodLabel
+                                    )
+                                  }
+                                  className="p-1 text-slate-400 hover:text-emerald-700 rounded transition cursor-pointer"
+                                  title="Start focus"
+                                >
+                                  <Play className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card 2: Upcoming Milestones */}
+                  {activePlan.milestones && activePlan.milestones.length > 0 && (
+                    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Target className="w-4 h-4 text-emerald-600" />
+                          <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                            Target Milestones
+                          </h3>
+                        </div>
+                        <span className="text-xs text-slate-400">
+                          {activePlan.milestones.filter((m) => m.completed).length} of {activePlan.milestones.length} achieved
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {activePlan.milestones.slice(0, 3).map((ms, idx) => (
+                          <div
+                            key={ms.id}
+                            className={`p-3 rounded-lg border flex items-center justify-between gap-3 text-xs transition ${
+                              ms.completed
+                                ? "bg-emerald-50/40 border-emerald-200 text-slate-500"
+                                : "bg-slate-50 border-slate-200 text-slate-800"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className={`w-5 h-5 rounded flex items-center justify-center font-mono text-[10px] font-bold ${
+                                ms.completed
+                                  ? "bg-emerald-600 text-white"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}>
+                                {ms.completed ? "✓" : idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <span className={`font-semibold truncate block ${ms.completed ? "line-through text-slate-400" : "text-slate-900"}`}>
+                                  {ms.title}
+                                </span>
+                                {ms.description && (
+                                  <span className="text-[10px] text-slate-400 truncate block">
+                                    {ms.description}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <span className="font-mono text-[10px] text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded shrink-0">
+                              {ms.target_date || "Continuous"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* RIGHT COLUMN: Active Session & Weekly Study Overview & Recent Activity (5 cols) */}
+                <div className="lg:col-span-5 space-y-6">
+                  {/* Card 1: Active Focus Session Status Banner */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Activity className="w-4 h-4 text-emerald-600" />
+                        <span>Active Focus Session</span>
+                      </span>
+                      <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded ${
+                        activeTimer
+                          ? activeTimer.isRunning
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-slate-100 text-slate-500"
+                      }`}>
+                        {activeTimer ? (activeTimer.isRunning ? "Active Live" : "Paused") : "Idle"}
+                      </span>
+                    </div>
+
+                    {activeTimer ? (
+                      <div className="space-y-3 pt-1">
+                        <div>
+                          <span className="text-[10px] font-mono uppercase text-emerald-700 font-bold block">
+                            {activeTimer.periodLabel}
+                          </span>
+                          <h4 className="text-sm font-bold text-slate-900 truncate">
+                            {activeTimer.taskTitle}
+                          </h4>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-slate-500 font-mono">
+                          <span>Elapsed: {formatMinutes(Math.round((activeTimer.totalSeconds - activeTimer.remainingSeconds) / 60))}</span>
+                          <span className="text-emerald-700 font-semibold">{Math.round(activeTimer.totalSeconds / 60)}m target</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-2 text-xs text-slate-500 leading-relaxed">
+                        No active timer running. Click &ldquo;Focus&rdquo; on any task to launch an integrated Pomodoro session with audio chimes.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card 2: Weekly Study Overview & Progress */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <TrendingUp className="w-4 h-4 text-emerald-600" />
+                        <span>Weekly Study Target</span>
+                      </h3>
+                      <span className="font-mono text-xs text-emerald-700 font-bold">
+                        {userSettings.study.weeklyStudyTargetHours}h / week
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span>Pace vs Target</span>
+                        <span className="font-semibold text-slate-800">
+                          {completionPercentage}% curriculum pace
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-emerald-600 h-full rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, completionPercentage)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+                        <span className="text-[10px] text-slate-400 block">Daily Target</span>
+                        <strong className="text-slate-900 font-mono">{activePlan.daily_hours} hrs</strong>
+                      </div>
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+                        <span className="text-[10px] text-slate-400 block">Experience Level</span>
+                        <strong className="text-slate-900 font-mono">{activePlan.experience_level || "Advanced"}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Recent Study Activity */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-slate-500" />
+                        <span>Recent Study Activity</span>
+                      </h3>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {sessions.length} sessions
+                      </span>
+                    </div>
+
+                    {sessions.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic">No study sessions logged yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {sessions.slice(0, 3).map((s) => (
+                          <div
+                            key={s.id}
+                            className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 text-xs"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-semibold text-slate-800 truncate block">
+                                {s.periodLabel || s.taskTitle}
+                              </span>
+                              <span className="text-[10px] text-slate-400 truncate block">
+                                {new Date(s.completedAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            <span className="font-mono text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                              +{s.durationMinutes}m
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Execution Filter Bar & View Switcher */}
+              <div className="pt-2">
+                <FilterBar
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  resourceFilter={resourceFilter}
+                  onResourceFilterChange={setResourceFilter}
+                  searchInputRef={searchInputRef}
+                />
+              </div>
+
+              {/* Detailed Execution Stream (Table / Timeline / Kanban / Analytics) */}
               {viewMode === "table" ? (
                 <TaskStreamTable
                   plan={activePlan}
@@ -598,7 +1118,7 @@ export default function Home() {
                   searchQuery={searchQuery}
                   resourceFilter={resourceFilter}
                 />
-              ) : (
+              ) : viewMode === "kanban" ? (
                 <KanbanView
                   plan={activePlan}
                   completedTasksMap={completedTasksMap}
@@ -607,6 +1127,22 @@ export default function Home() {
                   activeTimerTaskId={activeTimer ? activeTimer.taskId : null}
                   searchQuery={searchQuery}
                   resourceFilter={resourceFilter}
+                />
+              ) : (
+                <AnalyticsView
+                  sessions={sessions}
+                  plan={activePlan}
+                  completedTasksMap={completedTasksMap}
+                  userSettings={userSettings}
+                  onStartFocus={() => {
+                    if (activePlan?.schedule[0]?.tasks[0]) {
+                      handleStartFocus(
+                        activePlan.schedule[0].tasks[0],
+                        `${activePlan.id}_0_0`,
+                        activePlan.schedule[0].period_label
+                      );
+                    }
+                  }}
                 />
               )}
             </div>

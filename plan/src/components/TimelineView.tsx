@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Clock, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { SavedPlan, Task } from "@/types/study";
 import { TaskCard } from "./TaskCard";
 import { formatMinutes } from "@/lib/utils";
@@ -52,7 +52,7 @@ export function TimelineView({
   return (
     <div className="relative space-y-4">
       {/* Subtle Vertical Connector Line */}
-      <div className="hidden sm:block absolute left-8 top-6 bottom-6 w-px bg-[#1f2128] -z-0" />
+      <div className="hidden sm:block absolute left-8 top-6 bottom-6 w-px bg-slate-200 -z-0" />
 
       {plan.schedule.map((period, pIdx) => {
         const isCollapsed = collapsedPeriods[pIdx];
@@ -81,72 +81,77 @@ export function TimelineView({
         return (
           <div
             key={pIdx}
-            className="relative z-10 bg-[#121316] border border-[#1f2128] rounded-2xl overflow-hidden backdrop-blur-md transition-all hover:border-[#2a2d36] shadow-sm"
+            className="relative z-10 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs hover:border-slate-300 transition-all"
           >
             {/* Period Accordion Header */}
             <div
               onClick={() => togglePeriod(pIdx)}
-              className="p-4 sm:p-4.5 flex items-center justify-between gap-3 cursor-pointer select-none bg-[#121316] hover:bg-[#181a1f] transition border-b border-[#1f2128]"
+              className="p-4 sm:p-4.5 flex items-center justify-between gap-3 cursor-pointer select-none bg-white hover:bg-slate-50/70 transition border-b border-slate-100"
             >
               <div className="flex items-center gap-3 min-w-0">
                 {/* Numbered Period Marker */}
-                <div className="w-8 h-8 rounded-xl bg-[#ea580c]/15 border border-[#ea580c]/30 text-[#f97316] font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono font-bold text-xs flex items-center justify-center shrink-0">
                   {pIdx + 1}
                 </div>
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-bold text-white tracking-tight">
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight">
                       {period.period_label}
                     </h3>
-                    <span className="text-[11px] font-medium text-[#f97316] bg-[#ea580c]/10 border border-[#ea580c]/20 px-2 py-0.5 rounded truncate max-w-[280px]">
-                      {period.topic_summary}
+                    <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      {formatMinutes(periodTotalMinutes)}
                     </span>
                   </div>
+
+                  <p className="text-xs text-slate-500 truncate max-w-xl mt-0.5">
+                    {period.topic_summary}
+                  </p>
                 </div>
               </div>
 
-              {/* Right: duration, completion ratio, progress bar, chevron */}
+              {/* Right: Progress bar & Expand Icon */}
               <div className="flex items-center gap-3 shrink-0">
-                <div className="hidden sm:flex items-center gap-2.5 text-xs text-slate-400 font-mono">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-slate-500" />
-                    {formatMinutes(periodTotalMinutes)}
-                  </span>
-                  <span className="text-[#1f2128]">•</span>
-                  <span className="flex items-center gap-1 text-emerald-400">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                    {periodCompletedCount}/{period.tasks.length}
+                {/* Progress Mini Bar */}
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${periodPercent}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-[11px] text-slate-500 font-medium">
+                    {periodPercent}%
                   </span>
                 </div>
 
-                <div className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-white">
-                  {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                </div>
+                <button
+                  type="button"
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded transition"
+                  title={isCollapsed ? "Expand module" : "Collapse module"}
+                >
+                  {isCollapsed ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             </div>
 
-            {/* Micro Progress Bar on bottom edge of period header */}
-            <div className="w-full bg-[#0a0a0c] h-1">
-              <div
-                className="bg-emerald-500 h-full transition-all duration-300"
-                style={{ width: `${periodPercent}%` }}
-              />
-            </div>
-
-            {/* Task Cards Stack */}
+            {/* Tasks Container */}
             {!isCollapsed && (
-              <div className="p-3.5 sm:p-4 space-y-2 bg-[#0a0a0c]/60">
+              <div className="p-4 bg-slate-50/50 space-y-2.5">
                 {filteredTasks.length === 0 ? (
-                  <div className="py-4 text-center text-xs text-slate-500 italic">
-                    No tasks match the active filter for {period.period_label}.
+                  <div className="py-4 text-center text-xs text-slate-400">
+                    No tasks match your filters in this milestone.
                   </div>
                 ) : (
                   filteredTasks.map((task) => {
-                    const originalIndex = period.tasks.findIndex((t) => t === task);
-                    const taskId = `${plan.id}_${pIdx}_${originalIndex}`;
+                    const originalTaskIndex = period.tasks.findIndex((t) => t.title === task.title);
+                    const taskId = `${plan.id}_${pIdx}_${originalTaskIndex}`;
                     const isDone = !!completedTasksMap[taskId];
-                    const isTimerRunning = activeTimerTaskId === taskId;
+                    const isTimerActive = activeTimerTaskId === taskId;
 
                     return (
                       <TaskCard
@@ -156,7 +161,7 @@ export function TimelineView({
                         isCompleted={isDone}
                         onToggleComplete={() => onToggleTask(taskId)}
                         onStartFocus={() => onStartFocus(task, taskId, period.period_label)}
-                        isTimerActive={isTimerRunning}
+                        isTimerActive={isTimerActive}
                       />
                     );
                   })

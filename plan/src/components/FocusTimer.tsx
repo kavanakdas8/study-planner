@@ -111,38 +111,43 @@ export function FocusTimer({
 
   const isExpired = timer.remainingSeconds === 0;
 
+  // Circular progress ring calculation
+  const radius = 48;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
+
   return (
     <aside
       aria-label="Active Focus Timer Session"
       className="fixed bottom-5 right-5 z-50 transition-all duration-300"
     >
       <div
-        className={`bg-[#121316] border rounded-2xl shadow-2xl backdrop-blur-xl p-4 text-white max-w-sm sm:max-w-md w-full transition-all ${
+        className={`bg-white border rounded-2xl shadow-xl p-4 sm:p-5 text-slate-800 max-w-sm sm:max-w-md w-full transition-all ${
           isExpired
-            ? "border-amber-500/60 shadow-amber-950/40"
+            ? "border-amber-300 ring-4 ring-amber-100"
             : timer.isRunning
-            ? "border-[#ea580c]/60 shadow-orange-950/50"
-            : "border-[#1f2128] shadow-black/80"
+            ? "border-emerald-300 ring-4 ring-emerald-50 shadow-emerald-900/10"
+            : "border-slate-200"
         }`}
       >
         {/* Header bar */}
-        <div className="flex items-center justify-between gap-2 border-b border-[#1f2128] pb-2.5 mb-3">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-3">
           <div className="flex items-center gap-2 overflow-hidden">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               {timer.isRunning && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f97316] opacity-75" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
               )}
               <span
                 className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  isExpired ? "bg-amber-400" : timer.isRunning ? "bg-[#f97316]" : "bg-slate-600"
+                  isExpired ? "bg-amber-500" : timer.isRunning ? "bg-emerald-600" : "bg-slate-400"
                 }`}
               />
             </span>
             <div className="truncate">
-              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#f97316] block leading-tight">
+              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-700 block leading-tight">
                 {timer.periodLabel}
               </span>
-              <p className="text-xs font-semibold text-white truncate max-w-[200px] sm:max-w-[240px]">
+              <p className="text-xs font-semibold text-slate-900 truncate max-w-[200px] sm:max-w-[240px]">
                 {timer.taskTitle}
               </p>
             </div>
@@ -153,7 +158,7 @@ export function FocusTimer({
               type="button"
               onClick={() => playChime("timer")}
               title="Test chime"
-              className="p-1 text-slate-400 hover:text-white rounded hover:bg-[#181a1f] transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition cursor-pointer"
             >
               <Volume2 className="w-3.5 h-3.5" />
             </button>
@@ -161,7 +166,7 @@ export function FocusTimer({
               type="button"
               onClick={() => setMinimized(!minimized)}
               title={minimized ? "Expand" : "Minimize"}
-              className="p-1 text-slate-400 hover:text-white rounded hover:bg-[#181a1f] transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition cursor-pointer"
             >
               {minimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
             </button>
@@ -169,7 +174,7 @@ export function FocusTimer({
               type="button"
               onClick={onClose}
               title="Close Timer"
-              className="p-1 text-slate-400 hover:text-red-400 rounded hover:bg-[#181a1f] transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-slate-100 transition cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -181,7 +186,7 @@ export function FocusTimer({
           <div className="flex items-center justify-between gap-3 pt-1">
             <span
               className={`font-mono text-base font-bold ${
-                isExpired ? "text-amber-400" : "text-[#f97316]"
+                isExpired ? "text-amber-600" : "text-emerald-700"
               }`}
             >
               {formatTimeSeconds(timer.remainingSeconds)}
@@ -190,46 +195,78 @@ export function FocusTimer({
               <button
                 type="button"
                 onClick={toggleRunning}
-                className="px-2.5 py-1 bg-[#f97316] hover:bg-[#ea580c] text-white rounded text-xs font-semibold transition cursor-pointer"
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold transition cursor-pointer"
               >
                 {timer.isRunning ? "Pause" : "Play"}
               </button>
               <button
                 type="button"
                 onClick={handleMarkDone}
-                className="px-2 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 rounded text-xs font-semibold hover:bg-emerald-500/25 transition cursor-pointer"
+                className="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold hover:bg-emerald-100 transition cursor-pointer"
               >
                 Done
               </button>
             </div>
           </div>
         ) : (
-          /* Full View */
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span
-                  className={`font-mono text-3xl font-extrabold tracking-tight ${
-                    isExpired ? "text-amber-400 animate-pulse" : "text-[#f97316]"
-                  }`}
-                >
-                  {formatTimeSeconds(timer.remainingSeconds)}
-                </span>
-                <span className="text-xs text-slate-500 font-mono ml-2">
-                  / {Math.round(timer.totalSeconds / 60)}m
-                </span>
+          /* Full View with Elegant Circular Progress Indicator */
+          <div className="space-y-4">
+            <div className="flex items-center justify-center py-2">
+              <div className="relative flex items-center justify-center">
+                {/* Circular Progress Ring */}
+                <svg className="w-32 h-32 transform -rotate-90">
+                  {/* Track Circle */}
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r={radius}
+                    className="stroke-slate-100"
+                    strokeWidth="7"
+                    fill="transparent"
+                  />
+                  {/* Active Emerald Progress Ring */}
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r={radius}
+                    className={`${
+                      isExpired
+                        ? "stroke-amber-500"
+                        : "stroke-emerald-600"
+                    } transition-all duration-300`}
+                    strokeWidth="7"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    fill="transparent"
+                  />
+                </svg>
+
+                {/* Center Countdown Typography */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span
+                    className={`font-mono text-2xl sm:text-3xl font-extrabold tracking-tight ${
+                      isExpired ? "text-amber-600 animate-pulse" : "text-slate-900"
+                    }`}
+                  >
+                    {formatTimeSeconds(timer.remainingSeconds)}
+                  </span>
+                  <span className="text-[10px] font-mono font-medium text-slate-400 mt-0.5">
+                    {Math.round(timer.totalSeconds / 60)}m target
+                  </span>
+                </div>
               </div>
-              <span className="text-[10px] font-mono font-semibold text-[#f97316] bg-[#ea580c]/15 px-2 py-0.5 rounded border border-[#ea580c]/30">
-                {progressPercent}%
-              </span>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full bg-[#0a0a0c] h-1.5 rounded-full overflow-hidden border border-[#1f2128]">
-              <div
-                className="bg-gradient-to-r from-[#ea580c] to-[#f97316] h-full transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
+            {/* Status indicator row */}
+            <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+              <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-800">
+                <span className={`w-1.5 h-1.5 rounded-full ${timer.isRunning ? "bg-emerald-600 animate-pulse" : "bg-slate-400"}`} />
+                {timer.isRunning ? "Focusing actively" : isExpired ? "Session completed!" : "Paused"}
+              </span>
+              <span className="font-mono text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                {progressPercent}% done
+              </span>
             </div>
 
             {/* Controls */}
@@ -240,8 +277,8 @@ export function FocusTimer({
                   onClick={toggleRunning}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                     timer.isRunning
-                      ? "bg-[#ea580c]/20 hover:bg-[#ea580c]/30 text-[#f97316] border border-[#ea580c]/40"
-                      : "bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm"
+                      ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                   }`}
                 >
                   {timer.isRunning ? (
@@ -250,7 +287,7 @@ export function FocusTimer({
                     </>
                   ) : (
                     <>
-                      <Play className="w-3.5 h-3.5" /> {isExpired ? "Restart" : "Resume"}
+                      <Play className="w-3.5 h-3.5" /> {isExpired ? "Restart" : "Start"}
                     </>
                   )}
                 </button>
@@ -259,7 +296,7 @@ export function FocusTimer({
                   type="button"
                   onClick={addFiveMinutes}
                   title="Add 5 Minutes"
-                  className="px-2.5 py-1.5 bg-[#0a0a0c] hover:bg-[#181a1f] text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1 border border-[#1f2128] transition cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 border border-slate-200 transition cursor-pointer"
                 >
                   <Plus className="w-3 h-3" /> 5m
                 </button>
@@ -268,7 +305,7 @@ export function FocusTimer({
                   type="button"
                   onClick={resetTimer}
                   title="Reset Timer"
-                  className="p-1.5 bg-[#0a0a0c] hover:bg-[#181a1f] text-slate-400 hover:text-white rounded-lg border border-[#1f2128] transition cursor-pointer"
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 rounded-lg border border-slate-200 transition cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
@@ -277,7 +314,7 @@ export function FocusTimer({
               <button
                 type="button"
                 onClick={handleMarkDone}
-                className="px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
               >
                 <CheckCircle className="w-3.5 h-3.5" /> Mark Done
               </button>

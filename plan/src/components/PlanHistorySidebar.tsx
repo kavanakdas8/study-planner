@@ -9,7 +9,7 @@ import {
   Calendar,
   Clock,
   Search,
-  Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { SavedPlan } from "@/types/study";
 
@@ -61,73 +61,72 @@ export function PlanHistorySidebar({
       role="dialog"
       aria-modal="true"
       aria-label="Study Plan History"
-      className="fixed inset-0 z-50 flex bg-black/80 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex bg-slate-900/40 backdrop-blur-xs animate-fade-in"
     >
       <div
-        className="w-full max-w-xs sm:max-w-sm bg-[#121316] border-r border-[#1f2128] h-full flex flex-col shadow-2xl overflow-hidden"
+        className="w-full max-w-xs sm:max-w-sm bg-white border-r border-slate-200 h-full flex flex-col shadow-2xl overflow-hidden text-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 border-b border-[#1f2128] flex items-center justify-between">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-[#f97316]" />
-            <h2 className="text-sm font-bold text-white tracking-tight">Study History</h2>
+            <History className="w-4 h-4 text-emerald-600" />
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Study History</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-[#181a1f] transition cursor-pointer"
+            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* New Plan Action */}
-        <div className="p-3 border-b border-[#1f2128]">
+        <div className="p-3 border-b border-slate-100">
           <button
             type="button"
             onClick={() => {
               onClose();
               onOpenNewPlanModal();
             }}
-            className="w-full bg-[#ea580c]/15 hover:bg-[#ea580c]/25 border border-[#ea580c]/30 hover:border-[#ea580c]/50 text-[#f97316] font-medium py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
           >
-            <Plus className="w-3.5 h-3.5 text-[#f97316]" />
-            <span className="font-semibold text-white">Create New Curriculum</span>
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span className="font-semibold">Create New Curriculum</span>
           </button>
         </div>
 
         {/* Search */}
-        <div className="p-3 border-b border-[#1f2128]">
+        <div className="p-3 border-b border-slate-100">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search past roadmaps..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#0a0a0c] border border-[#1f2128] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#ea580c]"
+              placeholder="Search history..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
             />
           </div>
         </div>
 
-        {/* Plans list */}
+        {/* Plans List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
           {filtered.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 text-xs">
-              <Sparkles className="w-6 h-6 mx-auto mb-2 opacity-30 text-[#f97316]" />
-              {savedPlans.length === 0
-                ? "No saved study plans yet. Create your first one!"
-                : "No matching plans found."}
+            <div className="py-12 text-center text-xs text-slate-400">
+              No curricula found.
             </div>
           ) : (
             filtered.map((plan) => {
-              const progress = calculatePlanProgress(plan);
               const isActive = plan.id === activePlanId;
-              const dateStr = new Date(plan.createdAt).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              });
+              const progress = calculatePlanProgress(plan);
+              const dateStr = plan.createdAt
+                ? new Date(plan.createdAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })
+                : "Recent";
 
               return (
                 <div
@@ -136,62 +135,61 @@ export function PlanHistorySidebar({
                     onSelectPlan(plan);
                     onClose();
                   }}
-                  className={`group relative p-3 rounded-xl border transition-all cursor-pointer ${
+                  className={`p-3 rounded-xl border transition-all cursor-pointer group ${
                     isActive
-                      ? "bg-[#181a1f] border-[#f97316]/50 shadow-sm"
-                      : "bg-[#0a0a0c]/60 hover:bg-[#181a1f]/60 border-[#1f2128] hover:border-[#2a2d36]"
+                      ? "bg-emerald-50/70 border-emerald-300 shadow-2xs"
+                      : "bg-white hover:bg-slate-50 border-slate-200"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <h4
-                      className={`text-xs font-semibold line-clamp-1 ${
-                        isActive ? "text-[#f97316]" : "text-white"
-                      }`}
-                    >
-                      {plan.subject}
-                    </h4>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <BookOpen
+                          className={`w-3.5 h-3.5 ${
+                            isActive ? "text-emerald-700" : "text-slate-400"
+                          }`}
+                        />
+                        <h3 className="text-xs font-semibold text-slate-900 truncate">
+                          {plan.subject}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          {plan.target_timeframe}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-slate-400" />
+                          {dateStr}
+                        </span>
+                      </div>
+                    </div>
 
-                    {/* Delete button */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm(`Delete plan "${plan.subject}"?`)) {
+                        if (confirm(`Delete curriculum "${plan.subject}"?`)) {
                           onDeletePlan(plan.id);
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-400 rounded hover:bg-[#181a1f] transition"
-                      title="Delete plan"
+                      className="p-1 text-slate-400 hover:text-red-600 rounded transition opacity-0 group-hover:opacity-100"
+                      title="Delete curriculum"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  {/* Metadata line */}
-                  <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-slate-500" />
-                      {plan.target_timeframe}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-500" />
-                      {plan.daily_hours}h/d
-                    </span>
-                    <span className="text-slate-500 ml-auto font-mono">{dateStr}</span>
-                  </div>
-
-                  {/* Progress indicator */}
-                  <div className="mt-2.5 flex items-center gap-2">
-                    <div className="flex-1 bg-[#0a0a0c] h-1.5 rounded-full overflow-hidden border border-[#1f2128]">
+                  {/* Progress Indicator */}
+                  <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                    <div className="flex-1 mr-3 bg-slate-100 h-1.5 rounded-full overflow-hidden">
                       <div
-                        className="bg-emerald-500 h-full transition-all"
+                        className="bg-emerald-600 h-full rounded-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <span className="text-[10px] font-mono text-emerald-400">
-                      {progress}%
-                    </span>
+                    <span className="font-mono text-slate-600 font-semibold">{progress}%</span>
                   </div>
                 </div>
               );
@@ -199,8 +197,6 @@ export function PlanHistorySidebar({
           )}
         </div>
       </div>
-
-      {/* Backdrop click to dismiss */}
       <div className="flex-1" onClick={onClose} />
     </div>
   );

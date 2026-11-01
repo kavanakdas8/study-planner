@@ -1,38 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0c;
-  --foreground: #f8fafc;
-  --surface-card: #121316;
-  --surface-secondary: #181a1f;
-  --surface-hover: #1e2027;
-  --border-subtle: #1f2128;
-  --border-strong: #2a2d36;
-  --brand-orange: #f97316;
-  --brand-orange-hover: #ea580c;
-  --brand-orange-glow: rgba(249, 115, 22, 0.18);
-  --text-primary: #ffffff;
-  --text-secondary: #9ca3af;
-  --text-muted: #64748b;
+  /* CuratePlan Emerald Light Design System Tokens */
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-secondary: #f1f5f9;
+  --surface-hover: #f1f5f9;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-light: #ecfdf5;
+  --primary-soft: #d1fae5;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  /* Legacy mapping aliases */
+  --foreground: #0f172a;
+  --surface-card: #ffffff;
+  --border-subtle: #e2e8f0;
+  --brand-orange: #059669;
+  --brand-orange-hover: #047857;
+  --brand-orange-glow: rgba(5, 150, 105, 0.12);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--background);
+  color: var(--text-primary);
   font-family: var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dot Grid Background for Node Canvas */
+/* Subtle Dot Grid Background for Visual Node Canvas & Canvas Areas */
 .bg-dot-grid {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.10) 1.2px, transparent 1.2px);
-  background-size: 22px 22px;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.08) 1.25px, transparent 1.25px);
+  background-size: 20px 20px;
 }
 
-/* Custom Scrollbars */
+/* Custom Sleek Light Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -40,12 +54,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1f2128;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2e323d;
+  background: #94a3b8;
 }
 
 @keyframes fadeIn {
@@ -60,7 +74,7 @@ body {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes pulseSubtle {
@@ -68,7 +82,7 @@ body {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.55;
   }
 }
 

@@ -8,6 +8,8 @@ import {
   Layers,
   Download,
   ChevronDown,
+  TrendingUp,
+  ArrowUpRight,
 } from "lucide-react";
 import { SavedPlan, ActiveTimer } from "@/types/study";
 
@@ -16,8 +18,8 @@ interface HeaderKPIProps {
   completedCount: number;
   totalCount: number;
   totalMinutes: number;
-  activeTimer: ActiveTimer | null;
-  onOpenCreateModal: () => void;
+  activeTimer?: ActiveTimer | null;
+  onOpenCreateModal?: () => void;
   onExportMarkdown: () => void;
   selectedPeriodLabel?: string;
   onSelectPeriodLabel?: (label: string) => void;
@@ -38,155 +40,241 @@ export function HeaderKPI({
   const pendingTasks = Math.max(0, totalCount - completedCount);
   const totalHours = (totalMinutes / 60).toFixed(1);
 
+  // Velocity Calculation: (remaining estimated minutes) / (rolling 7-day average daily minutes logged)
+  const completedMinutes = totalCount > 0 ? Math.round(totalMinutes * (completedCount / totalCount)) : 0;
+  const remainingMinutes = Math.max(0, totalMinutes - completedMinutes);
+  const targetDailyMinutes = (plan.daily_hours || 2) * 60;
+  const daysSincePlanStart = Math.max(
+    1,
+    Math.min(7, Math.ceil((Date.now() - (plan.createdAt || Date.now() - 86400000 * 2)) / 86400000))
+  );
+  const rolling7DayAvgMinutes =
+    completedMinutes > 0
+      ? Math.max(30, Math.round((completedMinutes / daysSincePlanStart) * 0.7 + targetDailyMinutes * 0.3))
+      : targetDailyMinutes;
+
+  const daysToFinish = remainingMinutes > 0 ? Math.max(1, Math.ceil(remainingMinutes / rolling7DayAvgMinutes)) : 0;
+  const forecastDate = new Date();
+  forecastDate.setDate(forecastDate.getDate() + daysToFinish);
+  const forecastDateStr =
+    percentComplete === 100
+      ? "Completed"
+      : forecastDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
   const periodOptions = ["All Periods", ...plan.schedule.map((p) => p.period_label)];
+
+  // Formatted date string for greeting
+  const currentDateFormatted = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
   return (
     <div className="space-y-5">
       {/* =========================================================================
-          ROW 1: SECTION HEADER & ACTION CONTROLS
+          ROW 1: GREETING & CURRICULUM HEADER
           ========================================================================= */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
-        {/* Left: Large Bold Title & Muted Subtitle */}
-        <div className="space-y-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#f97316] animate-pulse" />
-              Active Curriculum
-            </span>
-            <span className="text-[11px] font-mono text-slate-400 bg-[#121316] border border-[#1f2128] px-2 py-0.5 rounded">
-              {plan.target_timeframe}
-            </span>
-            {plan.experience_level && (
-              <span className="text-[11px] font-mono text-slate-400 bg-[#121316] border border-[#1f2128] px-2 py-0.5 rounded">
-                {plan.experience_level}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5 min-w-0">
+            {/* Greeting & Date Badge */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-slate-500">
+                Welcome back, Alex
               </span>
-            )}
+              <span className="text-slate-300">•</span>
+              <span className="text-xs text-slate-500 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                {currentDateFormatted}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[11px] font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Active Curriculum
+              </span>
+            </div>
+
+            {/* Title & Overview */}
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight truncate">
+              {plan.subject}
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
+              {plan.overview}
+            </p>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight truncate">
-            {plan.subject}
-          </h1>
+          {/* Right Action Controls: Filter & Export */}
+          <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+            {/* Period Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700 transition cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                <span>{selectedPeriodLabel}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
 
-          <p className="text-xs sm:text-sm text-[#9ca3af] max-w-3xl leading-relaxed">
-            {plan.overview}
-          </p>
-        </div>
+              {periodDropdownOpen && (
+                <div className="absolute right-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1 text-xs text-slate-700 z-40 animate-fade-in">
+                  {periodOptions.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => {
+                        if (onSelectPeriodLabel) onSelectPeriodLabel(opt);
+                        setPeriodDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-1.5 text-left transition cursor-pointer flex items-center justify-between ${
+                        selectedPeriodLabel === opt
+                          ? "bg-emerald-50 text-emerald-800 font-semibold"
+                          : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <span className="truncate">{opt}</span>
+                      {selectedPeriodLabel === opt && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-        {/* Right-side Controls: Date/Period Dropdown + Secondary Action Button */}
-        <div className="flex items-center gap-2.5 shrink-0 self-start md:self-end">
-          {/* Date/Period Dropdown Button */}
-          <div className="relative">
+            {/* Export Markdown Action */}
             <button
               type="button"
-              onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#121316] hover:bg-[#181a1f] border border-[#1f2128] text-xs font-medium text-slate-300 hover:text-white transition cursor-pointer"
+              onClick={onExportMarkdown}
+              title="Export curriculum to markdown"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-medium transition cursor-pointer shadow-2xs"
             >
-              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <span>{selectedPeriodLabel}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <span>Export</span>
             </button>
-
-            {periodDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-48 bg-[#121316] border border-[#1f2128] rounded-xl shadow-2xl py-1 text-xs text-slate-300 z-40 animate-fade-in">
-                {periodOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      if (onSelectPeriodLabel) onSelectPeriodLabel(opt);
-                      setPeriodDropdownOpen(false);
-                    }}
-                    className={`w-full px-3 py-1.5 text-left transition cursor-pointer flex items-center justify-between ${
-                      selectedPeriodLabel === opt
-                        ? "bg-[#ea580c]/15 text-[#f97316] font-semibold"
-                        : "hover:bg-[#181a1f] text-slate-300 hover:text-white"
-                    }`}
-                  >
-                    <span>{opt}</span>
-                    {selectedPeriodLabel === opt && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#f97316]" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
-
-          {/* Secondary Action: Orange Outlined Export Markdown Container */}
-          <button
-            type="button"
-            onClick={onExportMarkdown}
-            title="Export full plan to markdown file"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#121316] hover:bg-[#ea580c]/10 border border-[#ea580c]/40 text-[#f97316] text-xs font-medium transition cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-[#f97316]" />
-            <span>Export Markdown</span>
-          </button>
         </div>
       </div>
 
       {/* =========================================================================
-          ROW 2: METRIC KPI CARDS
+          ROW 2: METRIC KPI CARDS (PREMIUM WHITE WITH EMERALD ACCENTS)
           ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Card 1: Completion Rate */}
-        <div className="bg-[#121316] border border-[#1f2128] hover:border-[#2a2d36] rounded-xl sm:rounded-2xl p-4.5 transition-all shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold text-[#9ca3af]">Completion Rate</span>
-            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Curriculum Progress */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4.5 transition-all hover:border-slate-300 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Curriculum Progress</span>
+            <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60">
               <CheckCircle2 className="w-4 h-4" />
             </span>
           </div>
 
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-mono">
+            <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-mono">
               {percentComplete}%
             </div>
-            <div className="text-[11px] text-slate-400 font-mono mt-1.5">
-              {completedCount} of {totalCount} completed
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[11px] text-slate-500">
+                {completedCount} of {totalCount} tasks completed
+              </span>
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
+                {pendingTasks} remaining
+              </span>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2.5">
+              <div
+                className="bg-emerald-600 h-full rounded-full transition-all duration-300"
+                style={{ width: `${percentComplete}%` }}
+              />
             </div>
           </div>
         </div>
 
         {/* Card 2: Total Study Time */}
-        <div className="bg-[#121316] border border-[#1f2128] hover:border-[#2a2d36] rounded-xl sm:rounded-2xl p-4.5 transition-all shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold text-[#9ca3af]">Total Study Time</span>
-            <span className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+        <div className="bg-white border border-slate-200 rounded-xl p-4.5 transition-all hover:border-slate-300 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Total Study Time</span>
+            <span className="p-1.5 rounded-lg bg-slate-100 text-slate-600 border border-slate-200/80">
               <Clock className="w-4 h-4" />
             </span>
           </div>
 
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-mono">
+            <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-mono">
               {totalHours} hrs
             </div>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="text-[11px] font-mono text-slate-400 bg-[#0a0a0c] px-2 py-0.5 rounded border border-[#1f2128]">
-                vs allocated hours
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-medium">
+                Allocated goal
               </span>
-              <span className="text-[11px] text-slate-500 font-mono">
-                ({plan.daily_hours}h/day)
+              <span className="text-[11px] text-slate-500">
+                ({plan.daily_hours}h / day)
               </span>
+            </div>
+            <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1 mt-2.5">
+              <ArrowUpRight className="w-3 h-3 text-emerald-600" />
+              <span>Target: {plan.target_timeframe}</span>
             </div>
           </div>
         </div>
 
         {/* Card 3: Pending Tasks */}
-        <div className="bg-[#121316] border border-[#1f2128] hover:border-[#2a2d36] rounded-xl sm:rounded-2xl p-4.5 transition-all shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold text-[#9ca3af]">Pending Tasks</span>
-            <span className="p-1.5 rounded-lg bg-[#ea580c]/10 text-[#f97316] border border-[#ea580c]/20">
+        <div className="bg-white border border-slate-200 rounded-xl p-4.5 transition-all hover:border-slate-300 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Total Tasks</span>
+            <span className="p-1.5 rounded-lg bg-slate-100 text-slate-600 border border-slate-200/80">
               <Layers className="w-4 h-4" />
             </span>
           </div>
 
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-mono">
-              {pendingTasks} {pendingTasks === 1 ? "task" : "tasks"}
+            <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-mono">
+              {totalCount}
             </div>
-            <div className="text-[11px] text-slate-400 font-mono mt-1.5">
-              of {totalCount} total
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[11px] text-slate-500">
+                {plan.schedule.length} learning modules
+              </span>
+              <span className="text-[11px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded font-medium">
+                {plan.experience_level || "Standard"}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-2.5">
+              Avg ~{totalCount > 0 ? Math.round(totalMinutes / totalCount) : 0}m per task
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Study Velocity & Forecast */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4.5 transition-all hover:border-slate-300 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Study Velocity & Forecast</span>
+            <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60">
+              <TrendingUp className="w-4 h-4" />
+            </span>
+          </div>
+
+          <div className="mt-3">
+            <div className="flex items-center gap-2">
+              <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-mono">
+                {forecastDateStr}
+              </div>
+              <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">
+                {daysToFinish > 0 ? `${daysToFinish}d left` : "Done"}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-2 flex items-center justify-between">
+              <span>Pace: {rolling7DayAvgMinutes}m/day</span>
+              <span className="text-emerald-700 font-semibold">
+                {Math.round((rolling7DayAvgMinutes / targetDailyMinutes) * 100)}% velocity
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-400 mt-2.5">
+              Based on active study completion
             </div>
           </div>
         </div>

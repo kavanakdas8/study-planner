@@ -1,20 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   LayoutDashboard,
   MapPin,
   BarChart3,
   Share2,
   Settings,
+  History,
   ChevronLeft,
   ChevronRight,
   Plus,
   BookOpen,
   Trash2,
   X,
-  Flame,
   CheckCircle2,
+  Compass,
 } from "lucide-react";
 import { SavedPlan, ActiveTimer } from "@/types/study";
 
@@ -51,8 +52,6 @@ export function AppSidebar({
   activeNavTab = "dashboard",
   onSelectNavTab,
 }: AppSidebarProps) {
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-
   // Active plan stats for the sidebar
   const activePlan = savedPlans.find((p) => p.id === activePlanId);
   let activePlanProgress = 0;
@@ -77,34 +76,39 @@ export function AppSidebar({
     }
     if (tabId === "history") {
       onOpenHistoryModal();
-    } else if (tabId === "settings") {
-      setShowSettingsModal(true);
     }
     onCloseMobile();
   };
 
-  const navItems = [
+  const workspaceNavItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "curriculum", label: "Curriculum Roadmap", icon: MapPin },
     { id: "analytics", label: "Analytics & Progress", icon: BarChart3 },
+    { id: "history", label: "Study History", icon: History },
+  ];
+
+  const manageNavItems = [
     { id: "export", label: "Export & Sync", icon: Share2 },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-[#121316] border-r border-[#1f2128] text-slate-300 select-none">
-      {/* Brand & Workspace Switcher Row */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-[#1f2128] shrink-0">
+    <div className="flex flex-col h-full bg-white border-r border-slate-200 text-slate-700 select-none transition-all duration-200">
+      {/* Brand & Workspace Header */}
+      <div className="h-15 px-4 flex items-center justify-between border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2.5 overflow-hidden">
-          {/* Stylized Logo with Industrial Orange Accent */}
-          <div className="w-8 h-8 rounded-lg bg-[#ea580c]/15 border border-[#ea580c]/30 flex items-center justify-center text-[#f97316] shrink-0 shadow-sm shadow-orange-950/40">
-            <Flame className="w-4 h-4 fill-[#f97316]" />
+          {/* Emerald Brand Logo */}
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs">
+            <Compass className="w-4 h-4 text-emerald-600 stroke-[2.2]" />
           </div>
 
           {!collapsed && (
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-xs font-bold text-white tracking-tight truncate">
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-slate-900 tracking-tight leading-none truncate">
                 CuratePlan
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium tracking-normal mt-0.5">
+                Plan Smarter. Learn Better.
               </span>
             </div>
           )}
@@ -115,7 +119,7 @@ export function AppSidebar({
           type="button"
           onClick={onToggleCollapse}
           title={collapsed ? "Expand sidebar ([)" : "Collapse sidebar ([)"}
-          className="hidden md:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#181a1f] border border-transparent hover:border-[#1f2128] transition cursor-pointer"
+          className="hidden md:flex p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition cursor-pointer"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -124,31 +128,31 @@ export function AppSidebar({
         <button
           type="button"
           onClick={onCloseMobile}
-          className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#181a1f] transition cursor-pointer"
+          className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Primary Action Button: New Sprint / Generate Plan */}
-      <div className="p-3 border-b border-[#1f2128]">
+      {/* Primary Action Button: Create / Generate Plan */}
+      <div className="p-3 border-b border-slate-100">
         <button
           type="button"
           onClick={() => {
             onOpenCreateModal();
             onCloseMobile();
           }}
-          title={`Generate Plan (${shortcutKey})`}
-          className={`w-full group flex items-center justify-between px-3 py-2 rounded-xl bg-[#ea580c]/15 hover:bg-[#ea580c]/25 border border-[#ea580c]/35 hover:border-[#ea580c]/50 text-[#f97316] font-medium text-xs transition cursor-pointer shadow-sm shadow-orange-950/20 ${
+          title={`Create Plan (${shortcutKey})`}
+          className={`w-full group flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-all shadow-xs cursor-pointer ${
             collapsed ? "justify-center px-0" : ""
           }`}
         >
           <span className="flex items-center gap-2">
-            <Plus className="w-3.5 h-3.5 text-[#f97316] group-hover:scale-110 transition" />
-            {!collapsed && <span className="font-semibold text-white">Generate Plan</span>}
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            {!collapsed && <span className="font-semibold text-white">Create Plan</span>}
           </span>
           {!collapsed && (
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-[#0a0a0c] border border-[#1f2128] rounded text-[#9ca3af]">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-emerald-700/60 border border-emerald-500/40 rounded text-emerald-100">
               {shortcutKey}
             </kbd>
           )}
@@ -156,16 +160,16 @@ export function AppSidebar({
       </div>
 
       {/* Main Navigation List */}
-      <div className="flex-1 overflow-y-auto p-2.5 space-y-6 scrollbar-thin">
-        {/* Section: Main Navigation */}
-        <div className="space-y-1">
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-5 scrollbar-thin">
+        {/* Section: WORKSPACE */}
+        <div className="space-y-0.5">
           {!collapsed && (
-            <div className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Navigation
+            <div className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Workspace
             </div>
           )}
 
-          {navItems.map((item) => {
+          {workspaceNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeNavTab === item.id;
             return (
@@ -174,15 +178,15 @@ export function AppSidebar({
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
                 title={item.label}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${
                   isActive
-                    ? "bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 font-semibold"
-                    : "text-slate-400 hover:text-white hover:bg-[#181a1f]"
+                    ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
                 } ${collapsed ? "justify-center px-0" : ""}`}
               >
                 <Icon
                   className={`w-4 h-4 shrink-0 ${
-                    isActive ? "text-[#f97316]" : "text-slate-400 group-hover:text-white"
+                    isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
                   }`}
                 />
                 {!collapsed && <span className="truncate">{item.label}</span>}
@@ -191,22 +195,56 @@ export function AppSidebar({
           })}
         </div>
 
-        {/* Section: Saved Roadmaps / Curricula */}
+        {/* Section: MANAGE */}
+        <div className="space-y-0.5 pt-2 border-t border-slate-100">
+          {!collapsed && (
+            <div className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Manage
+            </div>
+          )}
+
+          {manageNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeNavTab === item.id;
+            return (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                title={item.label}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${
+                  isActive
+                    ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+                } ${collapsed ? "justify-center px-0" : ""}`}
+              >
+                <Icon
+                  className={`w-4 h-4 shrink-0 ${
+                    isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
+                  }`}
+                />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Section: Saved Roadmaps */}
         {!collapsed && (
-          <div className="space-y-1.5 pt-3 border-t border-[#1f2128]">
-            <div className="px-2.5 pb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          <div className="space-y-1 pt-2 border-t border-slate-100">
+            <div className="px-2.5 pb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
               <span>Saved Roadmaps</span>
-              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-[#0a0a0c] border border-[#1f2128] text-slate-400">
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200 text-slate-500 font-semibold">
                 {savedPlans.length}
               </span>
             </div>
 
             {savedPlans.length === 0 ? (
-              <div className="px-2.5 py-3 text-[11px] text-slate-500 italic">
+              <div className="px-2.5 py-3 text-[11px] text-slate-400 italic">
                 No curricula saved yet.
               </div>
             ) : (
-              <div className="space-y-1 max-h-52 overflow-y-auto scrollbar-thin pr-1">
+              <div className="space-y-1 max-h-44 overflow-y-auto scrollbar-thin pr-1">
                 {savedPlans.map((plan) => {
                   const isActive = plan.id === activePlanId;
                   return (
@@ -218,21 +256,21 @@ export function AppSidebar({
                       }}
                       className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition cursor-pointer border ${
                         isActive
-                          ? "bg-[#181a1f] text-white border-[#2a2d36] font-medium shadow-sm"
-                          : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#181a1f]/60"
+                          ? "bg-emerald-50/60 text-emerald-800 border-emerald-200 font-semibold shadow-xs"
+                          : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate pr-2">
                         <BookOpen
                           className={`w-3.5 h-3.5 shrink-0 ${
-                            isActive ? "text-[#f97316]" : "text-slate-500"
+                            isActive ? "text-emerald-600" : "text-slate-400"
                           }`}
                         />
                         <span className="truncate">{plan.subject}</span>
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-[10px] font-mono text-slate-500 group-hover:hidden">
+                        <span className="text-[10px] font-mono text-slate-400 group-hover:hidden">
                           {plan.target_timeframe}
                         </span>
                         <button
@@ -243,7 +281,7 @@ export function AppSidebar({
                               onDeletePlan(plan.id);
                             }
                           }}
-                          className="hidden group-hover:flex p-1 text-slate-500 hover:text-red-400 rounded transition"
+                          className="hidden group-hover:flex p-1 text-slate-400 hover:text-red-600 rounded transition"
                           title="Delete plan"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -259,17 +297,17 @@ export function AppSidebar({
 
         {/* Active Focus Mode Card Widget */}
         {activeTimer && !collapsed && (
-          <div className="p-3 bg-[#0a0a0c] border border-[#ea580c]/30 rounded-xl space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-[#f97316]">
+          <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-1.5 shadow-xs">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-800">
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#f97316] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                 Active Focus Session
               </span>
-              <span className="font-mono text-[10px] bg-[#ea580c]/15 px-1.5 py-0.5 rounded text-[#f97316]">
+              <span className="font-mono text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium">
                 {activeTimer.isRunning ? "Running" : "Paused"}
               </span>
             </div>
-            <p className="text-[11px] text-slate-300 font-medium truncate">
+            <p className="text-[11px] text-slate-700 font-medium truncate">
               {activeTimer.taskTitle}
             </p>
           </div>
@@ -277,105 +315,64 @@ export function AppSidebar({
 
         {/* Active Plan Progress Mini Gauge */}
         {!collapsed && activePlan && (
-          <div className="p-3 bg-[#0a0a0c] border border-[#1f2128] rounded-xl space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Sprint Progress
+          <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700">
+              <span className="flex items-center gap-1.5 text-slate-700">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Curriculum Progress
               </span>
-              <span className="font-mono text-emerald-400 font-bold">
+              <span className="font-mono text-emerald-700 font-bold">
                 {activePlanProgress}%
               </span>
             </div>
-            <div className="w-full bg-[#181a1f] h-1.5 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-200/80 h-1.5 rounded-full overflow-hidden">
               <div
-                className="bg-emerald-500 h-full transition-all duration-300 shadow-sm shadow-emerald-500/30"
+                className="bg-emerald-600 h-full transition-all duration-300 rounded-full"
                 style={{ width: `${activePlanProgress}%` }}
               />
             </div>
-            <div className="text-[10px] text-slate-500 truncate">
+            <div className="text-[10px] text-slate-500 truncate font-medium">
               {activePlan.subject}
             </div>
           </div>
         )}
       </div>
 
-      {/* Bottom User Profile Section */}
-      <div className="p-3 border-t border-[#1f2128] bg-[#0d0d11]/80">
+      {/* Bottom User Profile & Workspace Info */}
+      <div className="p-3 border-t border-slate-200 bg-slate-50/80">
         {!collapsed ? (
-          <div className="flex items-center gap-3">
-            {/* User Avatar Circle */}
-            <div className="w-8 h-8 rounded-full bg-[#1f2128] border border-[#2a2d36] flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-inner">
-              AC
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* User Avatar Circle */}
+              <div className="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-xs font-bold text-emerald-800 shrink-0">
+                AD
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-slate-900 truncate">Alex Developer</div>
+                <div className="text-[10px] text-slate-500 truncate">Personal Workspace</div>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-white truncate">Alex Chen</div>
-              <div className="text-[11px] text-slate-500 truncate">alex.chen@study.dev</div>
-            </div>
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              title="Collapse sidebar"
+              className="hidden md:flex p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
           </div>
         ) : (
           <div className="flex justify-center">
             <div
-              title="Alex Chen (alex.chen@study.dev)"
-              className="w-8 h-8 rounded-full bg-[#1f2128] border border-[#2a2d36] flex items-center justify-center text-xs font-bold text-white shrink-0 cursor-pointer"
+              title="Alex Developer (Personal Workspace)"
+              onClick={onToggleCollapse}
+              className="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-xs font-bold text-emerald-800 shrink-0 cursor-pointer hover:ring-2 hover:ring-emerald-400 transition"
             >
-              AC
+              AD
             </div>
           </div>
         )}
       </div>
-
-      {/* Settings Modal */}
-      {showSettingsModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-          onClick={() => setShowSettingsModal(false)}
-        >
-          <div
-            className="w-full max-w-sm bg-[#121316] border border-[#1f2128] rounded-2xl p-5 space-y-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[#1f2128] pb-3">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Settings className="w-4 h-4 text-[#f97316]" />
-                <span>Enterprise Dashboard Settings</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowSettingsModal(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-3 text-xs text-slate-300">
-              <div>
-                <span className="font-semibold text-white block mb-0.5">Design System</span>
-                <span className="text-[#9ca3af]">Obsidian / Dark Glassmorphism</span>
-              </div>
-              <div>
-                <span className="font-semibold text-white block mb-0.5">AI Engine</span>
-                <span className="text-[#9ca3af]">Google Gemini 3.5 Flash Model</span>
-              </div>
-              <div>
-                <span className="font-semibold text-white block mb-0.5">Local State</span>
-                <span className="text-[#9ca3af]">Encrypted LocalStorage persistence</span>
-              </div>
-            </div>
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setShowSettingsModal(false)}
-                className="w-full py-2 bg-[#181a1f] hover:bg-[#1e2027] text-white border border-[#1f2128] rounded-lg text-xs font-semibold transition"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -383,7 +380,7 @@ export function AppSidebar({
     <>
       {/* Desktop Persistent Rail */}
       <aside
-        className={`hidden md:block transition-all duration-300 shrink-0 h-screen sticky top-0 z-30 ${
+        className={`hidden md:block transition-all duration-200 shrink-0 h-screen sticky top-0 z-30 ${
           collapsed ? "w-16" : "w-64"
         }`}
       >
@@ -395,11 +392,11 @@ export function AppSidebar({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 md:hidden bg-black/80 backdrop-blur-sm flex"
+          className="fixed inset-0 z-50 md:hidden bg-slate-900/40 backdrop-blur-xs flex"
           onClick={onCloseMobile}
         >
           <div
-            className="w-72 max-w-[80vw] h-full shadow-2xl animate-fade-in"
+            className="w-72 max-w-[80vw] h-full shadow-xl animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             {sidebarContent}

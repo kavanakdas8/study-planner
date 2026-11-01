@@ -61,53 +61,44 @@ export function LearningNodeGraph({
   return (
     <>
       {/* =========================================================================
-          ROW 3: INTERACTIVE LEARNING NODE GRAPH (VISUAL NODE CANVAS)
+          INTERACTIVE LEARNING NODE GRAPH
           ========================================================================= */}
-      <div className="bg-[#121316] border border-[#1f2128] rounded-xl sm:rounded-2xl p-5 relative overflow-hidden backdrop-blur-md shadow-xl select-none">
-        {/* Subtle Ambient Center Glow */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            background:
-              "radial-gradient(circle at 50% 50%, rgba(249, 115, 22, 0.08), transparent 70%)",
-          }}
-        />
-
+      <div className="bg-white border border-slate-200 rounded-xl p-5 relative overflow-hidden shadow-2xs select-none">
         {/* Top Header Row with Status Pills */}
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#1f2128]">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-2 flex-wrap">
             {/* Green Pulse Indicator Pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-mono font-medium">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <span>Active Sprint</span>
+              <span>Roadmap Graph</span>
             </div>
 
-            {/* Industrial Orange Tag */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 text-xs font-mono font-medium">
-              <Target className="w-3 h-3 text-[#f97316]" />
+            {/* Target Timeframe Tag */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 text-slate-700 border border-slate-200 text-xs font-mono font-medium">
+              <Target className="w-3 h-3 text-slate-500" />
               <span>Target: {plan.target_timeframe}</span>
             </div>
 
             {/* Phases Counter */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0a0a0c] text-slate-400 border border-[#1f2128] text-xs font-mono">
-              <Layers className="w-3 h-3 text-slate-500" />
-              <span>{plan.schedule.length} Milestone Nodes</span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 text-slate-600 border border-slate-200 text-xs font-mono">
+              <Layers className="w-3 h-3 text-slate-400" />
+              <span>{plan.schedule.length} Modules</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-[#9ca3af]">
-            <span className="hidden sm:inline">Interactive Roadmap Flow</span>
-            <span className="font-mono text-[10px] text-slate-500 bg-[#0a0a0c] px-2 py-0.5 rounded border border-[#1f2128]">
-              Zoom: {Math.round(zoomLevel * 100)}%
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="hidden sm:inline">Flow zoom:</span>
+            <span className="font-mono text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-medium">
+              {Math.round(zoomLevel * 100)}%
             </span>
           </div>
         </div>
 
         {/* Visual Node Canvas with Dot-Grid Background */}
-        <div className="relative z-10 my-4 bg-[#0a0a0c]/80 rounded-xl border border-[#1f2128] bg-dot-grid overflow-hidden min-h-[220px] flex items-center justify-center p-6">
+        <div className="relative z-10 my-4 bg-slate-50/80 rounded-xl border border-slate-200 bg-dot-grid overflow-hidden min-h-[220px] flex items-center justify-center p-6">
           <div
             className="flex items-center gap-0 overflow-x-auto py-4 px-2 w-full transition-transform duration-200 justify-start md:justify-center scrollbar-thin"
             style={{
@@ -127,12 +118,12 @@ export function LearningNodeGraph({
                     onClick={() => {
                       onSelectPeriodIndex(isSelected ? null : pIdx);
                     }}
-                    className={`relative shrink-0 w-64 rounded-xl p-4 transition-all duration-200 cursor-pointer shadow-lg group ${
+                    className={`relative shrink-0 w-64 rounded-xl p-4 transition-all duration-200 cursor-pointer group ${
                       isSelected
-                        ? "bg-[#181a1f] border-2 border-[#f97316] shadow-orange-950/40 translate-y-[-2px]"
+                        ? "bg-white border-2 border-emerald-600 shadow-md translate-y-[-2px]"
                         : stats.isDone
-                        ? "bg-[#121316] border border-emerald-500/40 hover:border-emerald-500/70"
-                        : "bg-[#121316] border border-[#1f2128] hover:border-[#ea580c]/60 hover:bg-[#181a1f]"
+                        ? "bg-emerald-50/60 border border-emerald-300 hover:border-emerald-400 shadow-2xs"
+                        : "bg-white border border-slate-200 hover:border-slate-300 shadow-2xs"
                     }`}
                   >
                     {/* Top Phase Header & Indicator */}
@@ -142,50 +133,50 @@ export function LearningNodeGraph({
                           NODE 0{pIdx + 1}
                         </span>
                         {stats.isDone && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                            Done
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold">
+                            Completed
                           </span>
                         )}
                         {stats.isStarted && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30">
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-300 font-semibold">
                             In Progress
                           </span>
                         )}
                       </div>
 
-                      <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1 bg-[#0a0a0c] px-1.5 py-0.5 rounded border border-[#1f2128]">
-                        <Clock className="w-3 h-3 text-slate-500" />
+                      <span className="text-[10px] font-mono text-slate-600 flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        <Clock className="w-3 h-3 text-slate-400" />
                         {formatMinutes(stats.totalMinutes)}
                       </span>
                     </div>
 
                     {/* Node Title & Subtitle */}
-                    <h3 className="text-sm font-bold text-white tracking-tight truncate group-hover:text-[#f97316] transition">
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight truncate group-hover:text-emerald-700 transition">
                       {period.period_label}
                     </h3>
-                    <p className="text-xs text-[#9ca3af] truncate mt-0.5">
+                    <p className="text-xs text-slate-500 truncate mt-0.5">
                       {period.topic_summary}
                     </p>
 
                     {/* Progress Bar & Task Count */}
-                    <div className="mt-3 pt-2.5 border-t border-[#1f2128]/80 flex items-center justify-between text-[11px] text-slate-400">
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-slate-300">
+                        <span className="font-mono text-slate-700 font-medium">
                           {stats.completed}/{stats.total}
                         </span>
-                        <span className="text-[10px] text-slate-500">tasks</span>
+                        <span className="text-[10px] text-slate-400">tasks</span>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <div className="w-16 bg-[#0a0a0c] h-1.5 rounded-full overflow-hidden border border-[#1f2128]">
+                        <div className="w-16 bg-slate-100 h-1.5 rounded-full overflow-hidden border border-slate-200">
                           <div
-                            className={`h-full transition-all duration-300 ${
-                              stats.isDone ? "bg-emerald-500" : "bg-[#f97316]"
+                            className={`h-full transition-all duration-300 rounded-full ${
+                              stats.isDone ? "bg-emerald-600" : "bg-emerald-500"
                             }`}
                             style={{ width: `${stats.percent}%` }}
                           />
                         </div>
-                        <span className="font-mono text-[10px] text-slate-400">
+                        <span className="font-mono text-[10px] text-slate-500 font-medium">
                           {stats.percent}%
                         </span>
                       </div>
@@ -198,12 +189,12 @@ export function LearningNodeGraph({
                       <div className="flex items-center">
                         <div
                           className={`h-0.5 w-6 sm:w-10 transition-colors ${
-                            stats.isDone ? "bg-emerald-500/60" : "bg-[#2a2d36]"
+                            stats.isDone ? "bg-emerald-500" : "bg-slate-300"
                           }`}
                         />
                         <div
                           className={`w-2.5 h-2.5 border-t-2 border-r-2 rotate-45 -ml-1 transition-colors ${
-                            stats.isDone ? "border-emerald-500/80" : "border-[#2a2d36]"
+                            stats.isDone ? "border-emerald-500" : "border-slate-300"
                           }`}
                         />
                       </div>
@@ -215,15 +206,15 @@ export function LearningNodeGraph({
           </div>
         </div>
 
-        {/* Canvas Controls: Floating Bottom-Left and Bottom-Right */}
+        {/* Canvas Controls */}
         <div className="relative z-10 flex items-center justify-between pt-1">
-          {/* Zoom Controls (Bottom Left) */}
-          <div className="flex items-center gap-1 bg-[#0a0a0c]/90 border border-[#1f2128] rounded-lg p-1 shadow-md">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-2xs">
             <button
               type="button"
               onClick={handleZoomOut}
               title="Zoom out"
-              className="p-1 text-slate-400 hover:text-white rounded hover:bg-[#181a1f] transition cursor-pointer"
+              className="p-1 text-slate-500 hover:text-slate-800 rounded hover:bg-slate-100 transition cursor-pointer"
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
@@ -231,7 +222,7 @@ export function LearningNodeGraph({
               type="button"
               onClick={handleResetZoom}
               title="Reset Zoom"
-              className="px-2 py-0.5 text-[10px] font-mono text-slate-400 hover:text-white rounded hover:bg-[#181a1f] transition cursor-pointer"
+              className="px-2 py-0.5 text-[10px] font-mono text-slate-600 hover:text-slate-900 rounded hover:bg-slate-100 transition cursor-pointer font-medium"
             >
               Reset
             </button>
@@ -239,21 +230,21 @@ export function LearningNodeGraph({
               type="button"
               onClick={handleZoomIn}
               title="Zoom in"
-              className="p-1 text-slate-400 hover:text-white rounded hover:bg-[#181a1f] transition cursor-pointer"
+              className="p-1 text-slate-500 hover:text-slate-800 rounded hover:bg-slate-100 transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Full Preview Button (Bottom Right) */}
+          {/* Full Preview Button */}
           <button
             type="button"
             onClick={() => setIsFullPreviewOpen(true)}
             title="Open expanded roadmap canvas"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0a0a0c]/90 hover:bg-[#181a1f] border border-[#1f2128] hover:border-[#2a2d36] text-xs font-medium text-slate-300 hover:text-white transition cursor-pointer shadow-md"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 hover:text-slate-900 transition cursor-pointer shadow-2xs"
           >
-            <span>Full preview</span>
-            <ExternalLink className="w-3.5 h-3.5 text-[#f97316]" />
+            <span>Full overview</span>
+            <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
           </button>
         </div>
       </div>
@@ -263,62 +254,62 @@ export function LearningNodeGraph({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-black/85 backdrop-blur-md animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-slate-900/40 backdrop-blur-xs animate-fade-in"
           onClick={() => setIsFullPreviewOpen(false)}
         >
           <div
-            className="w-full max-w-5xl max-h-[90vh] bg-[#121316] border border-[#1f2128] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="w-full max-w-5xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 sm:p-5 border-b border-[#1f2128] flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#ea580c]/15 border border-[#ea580c]/30 flex items-center justify-center text-[#f97316]">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
                   <Layers className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white tracking-tight">
-                    Full Curriculum Architecture Canvas
+                  <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                    Curriculum Architecture Canvas
                   </h2>
-                  <p className="text-xs text-[#9ca3af]">{plan.subject}</p>
+                  <p className="text-xs text-slate-500">{plan.subject}</p>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setIsFullPreviewOpen(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-[#181a1f] transition cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-dot-grid bg-[#0a0a0c]">
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-dot-grid bg-slate-50/50">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {plan.schedule.map((period, idx) => {
                   const stats = getPeriodStats(period, idx);
                   return (
                     <div
                       key={idx}
-                      className="p-4 rounded-xl bg-[#121316] border border-[#1f2128] space-y-3"
+                      className="p-4 rounded-xl bg-white border border-slate-200 space-y-3 shadow-2xs"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-[#f97316] uppercase">
+                        <span className="text-xs font-mono font-bold text-emerald-700 uppercase">
                           Milestone 0{idx + 1}
                         </span>
-                        <span className="text-xs font-mono text-slate-400">
+                        <span className="text-xs font-mono text-slate-500">
                           {formatMinutes(stats.totalMinutes)}
                         </span>
                       </div>
-                      <h4 className="text-sm font-bold text-white">{period.period_label}</h4>
-                      <p className="text-xs text-slate-400">{period.topic_summary}</p>
-                      <div className="space-y-1.5 pt-2 border-t border-[#1f2128]">
+                      <h4 className="text-sm font-bold text-slate-900">{period.period_label}</h4>
+                      <p className="text-xs text-slate-500">{period.topic_summary}</p>
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
                         {period.tasks.map((task, tIdx) => (
                           <div
                             key={tIdx}
-                            className="flex items-center justify-between text-xs text-slate-300"
+                            className="flex items-center justify-between text-xs text-slate-600"
                           >
                             <span className="truncate pr-2">• {task.title}</span>
-                            <span className="font-mono text-[10px] text-slate-500 shrink-0">
+                            <span className="font-mono text-[10px] text-slate-400 shrink-0">
                               {task.duration_minutes}m
                             </span>
                           </div>

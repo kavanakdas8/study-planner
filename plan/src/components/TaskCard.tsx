@@ -39,34 +39,34 @@ export function TaskCard({
     if (lower.includes("exercise") || lower.includes("practice") || lower.includes("code")) {
       return {
         icon: <Terminal className="w-3 h-3" />,
-        className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        className: "bg-emerald-50 text-emerald-700 border-emerald-200",
         label: "Exercise",
       };
     }
     if (lower.includes("doc") || lower.includes("api") || lower.includes("reference")) {
       return {
         icon: <BookOpen className="w-3 h-3" />,
-        className: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+        className: "bg-sky-50 text-sky-700 border-sky-200",
         label: "Documentation",
       };
     }
     if (lower.includes("video") || lower.includes("tutorial") || lower.includes("watch")) {
       return {
         icon: <PlayCircle className="w-3 h-3" />,
-        className: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        className: "bg-amber-50 text-amber-700 border-amber-200",
         label: "Video",
       };
     }
     if (lower.includes("read") || lower.includes("book") || lower.includes("article")) {
       return {
         icon: <FileText className="w-3 h-3" />,
-        className: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+        className: "bg-purple-50 text-purple-700 border-purple-200",
         label: "Reading",
       };
     }
     return {
       icon: <Layers className="w-3 h-3" />,
-      className: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+      className: "bg-slate-100 text-slate-700 border-slate-200",
       label: type || "General",
     };
   };
@@ -85,23 +85,23 @@ export function TaskCard({
 
   return (
     <div
-      className={`group relative rounded-xl border transition-all duration-200 ${
+      className={`group relative rounded-xl border transition-all duration-150 ${
         isCompleted
-          ? "bg-[#0d0d11]/70 border-[#1f2128]/50 text-slate-500 opacity-70"
-          : "bg-[#121316] hover:bg-[#181a1f] border-[#1f2128] hover:border-[#2a2d36] shadow-sm"
+          ? "bg-slate-50/70 border-slate-200/80 text-slate-400 opacity-80"
+          : "bg-white hover:bg-slate-50/50 border-slate-200 hover:border-slate-300 shadow-2xs"
       }`}
     >
       <div className="p-3 sm:p-3.5 flex flex-col gap-2">
         <div className="flex items-start gap-3 justify-between">
-          {/* Custom Checkbox */}
+          {/* Custom Emerald Checkbox */}
           <button
             type="button"
             onClick={handleCheckboxClick}
             aria-label={`Mark "${task.title}" as ${isCompleted ? "incomplete" : "complete"}`}
-            className={`mt-0.5 w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+            className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
               isCompleted
-                ? "bg-emerald-500 border-emerald-500 text-black font-bold"
-                : "border-slate-600 bg-[#0a0a0c] hover:border-[#f97316] text-transparent"
+                ? "bg-emerald-600 border-emerald-600 text-white font-bold"
+                : "border-slate-300 bg-white hover:border-emerald-500 text-transparent"
             }`}
           >
             <Check className="w-3 h-3 stroke-[3]" />
@@ -113,8 +113,8 @@ export function TaskCard({
               onClick={() => setExpanded(!expanded)}
               className={`text-xs sm:text-sm font-semibold cursor-pointer transition-all block leading-snug ${
                 isCompleted
-                  ? "line-through text-slate-500"
-                  : "text-white hover:text-[#f97316]"
+                  ? "line-through text-slate-400"
+                  : "text-slate-900 hover:text-emerald-700"
               }`}
             >
               {task.title}
@@ -124,15 +124,15 @@ export function TaskCard({
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               {/* Resource Badge */}
               <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${badge.className}`}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${badge.className}`}
               >
                 {badge.icon}
                 <span>{badge.label}</span>
               </span>
 
               {/* Monospace Duration */}
-              <span className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-300 bg-[#0a0a0c] border border-[#1f2128] px-1.5 py-0.5 rounded">
-                <Clock className="w-3 h-3 text-slate-500" />
+              <span className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                <Clock className="w-3 h-3 text-slate-400" />
                 <span>{task.duration_minutes}m</span>
               </span>
 
@@ -145,8 +145,8 @@ export function TaskCard({
                 }}
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition cursor-pointer ${
                   isTimerActive
-                    ? "bg-[#ea580c]/25 border border-[#ea580c]/50 text-[#f97316] animate-pulse"
-                    : "bg-[#0a0a0c] hover:bg-[#ea580c]/20 border border-[#1f2128] hover:border-[#ea580c]/40 text-slate-300 hover:text-[#f97316]"
+                    ? "bg-emerald-100 border border-emerald-300 text-emerald-800 animate-pulse"
+                    : "bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-600 hover:text-emerald-700"
                 }`}
                 title="Start Pomodoro Focus Session for this task"
               >
@@ -160,7 +160,7 @@ export function TaskCard({
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="p-1 text-slate-500 hover:text-white rounded hover:bg-[#181a1f] transition cursor-pointer"
+            className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition cursor-pointer"
             title={expanded ? "Hide instructions" : "Show instructions"}
           >
             {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -169,11 +169,11 @@ export function TaskCard({
 
         {/* Detailed Instructions Accordion */}
         {expanded && (
-          <div className="mt-1 pl-7 text-xs text-slate-300 bg-[#0a0a0c] border border-[#1f2128] rounded-lg p-3 leading-relaxed animate-fade-in">
-            <span className="font-semibold text-[#f97316] text-[11px] block mb-1">
-              Instructions &amp; Practice Goals
+          <div className="mt-1 pl-7 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 leading-relaxed animate-fade-in">
+            <span className="font-semibold text-emerald-800 text-[11px] block mb-1">
+              Instructions & Practice Objective
             </span>
-            <p className="text-slate-300 whitespace-pre-line text-xs">
+            <p className="text-slate-600 whitespace-pre-line text-xs">
               {task.description}
             </p>
           </div>
