@@ -132,25 +132,13 @@ export function FocusTimer({
       >
         {/* Header bar */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-3">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              {timer.isRunning && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-              )}
-              <span
-                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  isExpired ? "bg-amber-500" : timer.isRunning ? "bg-emerald-600" : "bg-slate-400"
-                }`}
-              />
+          <div className="truncate">
+            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-700 block leading-tight">
+              {timer.periodLabel}
             </span>
-            <div className="truncate">
-              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-700 block leading-tight">
-                {timer.periodLabel}
-              </span>
-              <p className="text-xs font-semibold text-slate-900 truncate max-w-[200px] sm:max-w-[240px]">
-                {timer.taskTitle}
-              </p>
-            </div>
+            <p className="text-xs font-semibold text-slate-900 truncate max-w-[200px] sm:max-w-[240px]">
+              {timer.taskTitle}
+            </p>
           </div>
 
           <div className="flex items-center gap-1">
@@ -260,9 +248,8 @@ export function FocusTimer({
 
             {/* Status indicator row */}
             <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-              <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-800">
-                <span className={`w-1.5 h-1.5 rounded-full ${timer.isRunning ? "bg-emerald-600 animate-pulse" : "bg-slate-400"}`} />
-                {timer.isRunning ? "Focusing actively" : isExpired ? "Session completed!" : "Paused"}
+              <span className="text-[11px] font-medium text-slate-500">
+                {isExpired ? "Session completed!" : !timer.isRunning ? "Paused" : ""}
               </span>
               <span className="font-mono text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                 {progressPercent}% done

@@ -314,13 +314,13 @@ export function TaskStreamTable({
                           onClick={() => onStartFocus(task, taskId, periodLabel)}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer ${
                             isTimerActive
-                              ? "bg-emerald-100 border border-emerald-300 text-emerald-800 animate-pulse"
+                              ? "bg-emerald-50 border border-emerald-300 text-emerald-700 font-semibold"
                               : "bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700"
                           }`}
                           title="Start focus timer"
                         >
                           <Play className="w-2.5 h-2.5 fill-current" />
-                          <span>{isTimerActive ? "Focusing" : "Focus"}</span>
+                          <span>Focus</span>
                         </button>
                       </td>
                     </tr>

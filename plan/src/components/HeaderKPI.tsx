@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import {
   Calendar,
-  Download,
   ChevronDown,
   ArrowUpRight,
+  FileDown,
+  Loader2,
 } from "lucide-react";
 import { SavedPlan, ActiveTimer } from "@/types/study";
 
@@ -16,7 +17,9 @@ interface HeaderKPIProps {
   totalMinutes: number;
   activeTimer?: ActiveTimer | null;
   onOpenCreateModal?: () => void;
-  onExportMarkdown: () => void;
+  onExportPDF: () => void;
+  isExportingPDF?: boolean;
+  onExportMarkdown?: () => void;
   selectedPeriodLabel?: string;
   onSelectPeriodLabel?: (label: string) => void;
 }
@@ -26,6 +29,8 @@ export function HeaderKPI({
   completedCount,
   totalCount,
   totalMinutes,
+  onExportPDF,
+  isExportingPDF = false,
   onExportMarkdown,
   selectedPeriodLabel = "All Periods",
   onSelectPeriodLabel,
@@ -111,15 +116,25 @@ export function HeaderKPI({
               )}
             </div>
 
-            {/* Export Markdown Action */}
+            {/* Export PDF Action */}
             <button
               type="button"
-              onClick={onExportMarkdown}
-              title="Export curriculum to markdown"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-medium transition cursor-pointer shadow-2xs"
+              onClick={onExportPDF || onExportMarkdown}
+              disabled={isExportingPDF}
+              title="Export curriculum as professional PDF report"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-medium transition cursor-pointer shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export</span>
+              {isExportingPDF ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                  <span>Exporting PDF...</span>
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Export PDF</span>
+                </>
+              )}
             </button>
           </div>
         </div>

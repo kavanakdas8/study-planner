@@ -21,9 +21,9 @@ import {
   exportPlanToMarkdown,
   exportPlanToCSV,
   generateICS,
-  printCurriculumDocument,
   playChime,
 } from "@/lib/utils";
+import { exportCurriculumToPDF } from "@/lib/pdfGenerator";
 
 interface ExportSyncViewProps {
   plan: SavedPlan | null;
@@ -85,11 +85,16 @@ export function ExportSyncView({
     playChime("click");
   };
 
-  // 4. Export PDF / Printable dossier
+  // 4. Export PDF / Professional Curriculum Report
   const handleExportPDF = () => {
     if (!plan) return;
-    printCurriculumDocument(plan, completedTasksMap);
-    playChime("click");
+    try {
+      exportCurriculumToPDF(plan, completedTasksMap);
+      playChime("complete");
+    } catch (e) {
+      console.error("PDF export error:", e);
+      playChime("click");
+    }
   };
 
   // 5. Complete JSON Application Backup
@@ -264,10 +269,10 @@ export function ExportSyncView({
                 <FileText className="w-4 h-4" />
               </div>
               <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition">
-                Printable PDF
+                Professional PDF Report
               </h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Clean, high-resolution document with curriculum breakdown and milestones.
+                Clean, academic PDF report with complete hierarchy, tasks, and metrics.
               </p>
             </div>
             <button
@@ -276,7 +281,7 @@ export function ExportSyncView({
               onClick={handleExportPDF}
               className="w-full py-2 rounded-lg bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 text-xs font-semibold border border-slate-200 hover:border-emerald-200 transition cursor-pointer disabled:opacity-50 shadow-2xs"
             >
-              Print / Save PDF
+              Export PDF (.pdf)
             </button>
           </div>
 

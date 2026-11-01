@@ -145,13 +145,13 @@ export function TaskCard({
                 }}
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition cursor-pointer ${
                   isTimerActive
-                    ? "bg-emerald-100 border border-emerald-300 text-emerald-800 animate-pulse"
+                    ? "bg-emerald-50 border border-emerald-300 text-emerald-700 font-semibold"
                     : "bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-600 hover:text-emerald-700"
                 }`}
                 title="Start Pomodoro Focus Session for this task"
               >
                 <Play className="w-2.5 h-2.5 fill-current" />
-                <span>{isTimerActive ? "Focusing" : "Focus"}</span>
+                <span>Focus</span>
               </button>
             </div>
           </div>

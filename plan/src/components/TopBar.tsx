@@ -12,6 +12,7 @@ import {
   Check,
   Bell,
   ChevronRight,
+  FileDown,
 } from "lucide-react";
 import { SavedPlan } from "@/types/study";
 import { playChime } from "@/lib/utils";
@@ -21,6 +22,7 @@ interface TopBarProps {
   onOpenMobileMenu: () => void;
   onOpenCreateModal: () => void;
   onOpenHistoryModal?: () => void;
+  onExportPDF?: () => void;
   onExportMarkdown: () => void;
   onExportICS: () => void;
   onClearCompleted: () => void;
@@ -33,6 +35,7 @@ export function TopBar({
   activePlan,
   onOpenMobileMenu,
   onOpenCreateModal,
+  onExportPDF,
   onExportMarkdown,
   onExportICS,
   onClearCompleted,
@@ -191,6 +194,20 @@ export function TopBar({
 
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 text-xs text-slate-700 z-50 animate-fade-in">
+                {onExportPDF && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      onExportPDF();
+                    }}
+                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-900 font-semibold transition cursor-pointer"
+                  >
+                    <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Export PDF (.pdf)</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -199,7 +216,7 @@ export function TopBar({
                   }}
                   className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700 hover:text-slate-900 transition cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5 text-emerald-600" />
+                  <Download className="w-3.5 h-3.5 text-slate-500" />
                   <span>Export Markdown (.md)</span>
                 </button>
 

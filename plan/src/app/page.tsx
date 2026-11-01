@@ -14,6 +14,7 @@ import { AnalyticsView } from "@/components/AnalyticsView";
 import { ExportSyncView } from "@/components/ExportSyncView";
 import { SettingsView } from "@/components/SettingsView";
 import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
+import { exportCurriculumToPDF } from "@/lib/pdfGenerator";
 import {
   STORAGE_KEY_PLANS,
   STORAGE_KEY_ACTIVE_ID,
@@ -30,6 +31,9 @@ import {
   Clock,
   Play,
   Check,
+  CheckCircle2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 
 const DEFAULT_SEED_PLAN: SavedPlan = {
@@ -189,6 +193,13 @@ export default function Home() {
   // Network State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Export PDF State
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -496,6 +507,38 @@ export default function Home() {
     );
   };
 
+  // Export Plan to Professional PDF Document
+  const handleExportPDF = async () => {
+    if (!activePlan) return;
+    setIsExportingPDF(true);
+    setExportFeedback(null);
+    playChime("click");
+    try {
+      // Small pause to allow the React loading spinner to render
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      exportCurriculumToPDF(activePlan, completedTasksMap);
+      playChime("complete");
+      const cleanName = (activePlan.subject || "curriculum")
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "");
+      setExportFeedback({
+        type: "success",
+        message: `Curriculum report exported successfully as [${cleanName || "curriculum"}_study_plan.pdf]!`,
+      });
+      setTimeout(() => setExportFeedback(null), 5000);
+    } catch (err) {
+      console.error("PDF export error:", err);
+      setExportFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "Failed to generate curriculum PDF. Please try again.",
+      });
+      setTimeout(() => setExportFeedback(null), 6000);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   // Export Plan to Markdown
   const handleExportMarkdown = () => {
     if (!activePlan) return;
@@ -651,6 +694,7 @@ export default function Home() {
             setIsModalOpen(true);
           }}
           onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
+          onExportPDF={handleExportPDF}
           onExportMarkdown={handleExportMarkdown}
           onExportICS={handleExportICS}
           onClearCompleted={handleClearCompleted}
@@ -713,12 +757,41 @@ export default function Home() {
           ) : activePlan ? (
             /* DEFAULT: DASHBOARD VIEW */
             <div className="space-y-6">
+              {/* PDF Export Feedback Alert */}
+              {exportFeedback && (
+                <div
+                  className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 shadow-2xs transition animate-fade-in ${
+                    exportFeedback.type === "success"
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                      : "bg-red-50 border-red-200 text-red-900"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    {exportFeedback.type === "success" ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                    )}
+                    <span className="font-medium">{exportFeedback.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExportFeedback(null)}
+                    className="text-slate-400 hover:text-slate-700 cursor-pointer p-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {/* Header KPI & Metric Cards */}
               <HeaderKPI
                 plan={activePlan}
                 completedCount={completedCount}
                 totalCount={totalCount}
                 totalMinutes={totalMinutes}
+                onExportPDF={handleExportPDF}
+                isExportingPDF={isExportingPDF}
                 onExportMarkdown={handleExportMarkdown}
                 selectedPeriodLabel={
                   selectedPeriodIndex !== null
