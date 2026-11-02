@@ -273,12 +273,25 @@ function generateDefaultRevisions(plan: SavedPlan, modules: CurriculumModule[]):
 export function syncCurriculumToSchedule(plan: SavedPlan): SavedPlan {
   if (!plan.modules) return plan;
 
-  const newSchedule = plan.modules.map((m) => {
+  const newSchedule = plan.modules.map((m, mIdx) => {
     const allTasks = m.topics.flatMap((t) => t.tasks);
+    const tasks =
+      allTasks.length > 0
+        ? allTasks
+        : [
+            {
+              id: `${plan.id}_${mIdx}_0`,
+              title: `${m.title} - Core Practice & Study`,
+              description: m.summary || `Fundamental concepts and study exercises for ${m.title}`,
+              duration_minutes: 60,
+              resource_type: "Practice" as const,
+              completed: false,
+            },
+          ];
     return {
       period_label: m.title,
       topic_summary: m.summary || m.topics.map((t) => t.name).join(" • "),
-      tasks: allTasks,
+      tasks,
     };
   });
 

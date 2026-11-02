@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Edit3, Trash2 } from "lucide-react";
 import { SavedPlan, Task } from "@/types/study";
 import { TaskCard } from "./TaskCard";
 import { formatMinutes } from "@/lib/utils";
@@ -13,6 +14,8 @@ interface KanbanViewProps {
   activeTimerTaskId: string | null;
   searchQuery: string;
   resourceFilter: string;
+  onEditModule?: (moduleIndex: number) => void;
+  onDeleteModule?: (moduleIndex: number) => void;
 }
 
 export function KanbanView({
@@ -23,6 +26,8 @@ export function KanbanView({
   activeTimerTaskId,
   searchQuery,
   resourceFilter,
+  onEditModule,
+  onDeleteModule,
 }: KanbanViewProps) {
   const matchesFilter = (task: Task) => {
     if (searchQuery.trim()) {
@@ -66,16 +71,38 @@ export function KanbanView({
             {/* Column Header */}
             <div className="p-3.5 border-b border-slate-200 bg-white shrink-0">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono text-[10px] font-bold flex items-center justify-center">
+                <span className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-1.5 min-w-0">
+                  <span className="w-5 h-5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
                     {pIdx + 1}
                   </span>
                   <span className="truncate">{period.period_label}</span>
                 </span>
 
-                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-medium">
-                  {formatMinutes(periodTotalMinutes)}
-                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-medium">
+                    {formatMinutes(periodTotalMinutes)}
+                  </span>
+                  {onEditModule && (
+                    <button
+                      type="button"
+                      onClick={() => onEditModule(pIdx)}
+                      title={`Edit module: ${period.period_label}`}
+                      className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-slate-100 rounded transition cursor-pointer"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                  )}
+                  {onDeleteModule && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteModule(pIdx)}
+                      title={`Delete module: ${period.period_label}`}
+                      className="p-1 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <p className="text-[11px] text-slate-500 font-normal truncate mt-1">

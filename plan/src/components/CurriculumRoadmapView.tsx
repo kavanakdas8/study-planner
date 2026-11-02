@@ -20,6 +20,7 @@ import {
   LayoutList,
   Columns,
   GitCommit,
+  Trash2,
 } from "lucide-react";
 import { playChime } from "@/lib/utils";
 import { syncCurriculumToSchedule } from "@/lib/curriculumAdapter";
@@ -141,6 +142,38 @@ export function CurriculumRoadmapView({
     setIsModuleModalOpen(true);
   };
 
+  const handleEditModule = (moduleIndex: number) => {
+    const mod = modules[moduleIndex] || {
+      id: `module_${plan.id}_${moduleIndex}`,
+      title: plan.schedule[moduleIndex]?.period_label || `Module ${moduleIndex + 1}`,
+      summary: plan.schedule[moduleIndex]?.topic_summary || "",
+      estimated_hours: 2,
+      topics: [],
+    };
+    handleOpenModuleModal(mod);
+  };
+
+  const handleDeleteModule = (moduleIndex: number) => {
+    const targetModule = modules[moduleIndex];
+    const title = targetModule?.title || plan.schedule[moduleIndex]?.period_label || `Module ${moduleIndex + 1}`;
+    if (!confirm(`Are you sure you want to delete module "${title}" and all its tasks?`)) {
+      return;
+    }
+
+    const updatedModules = modules.filter((m, idx) => targetModule ? m.id !== targetModule.id : idx !== moduleIndex);
+    const updatedSchedule = plan.schedule.filter((_, idx) => idx !== moduleIndex);
+
+    const updatedPlan: SavedPlan = {
+      ...plan,
+      modules: updatedModules,
+      schedule: updatedSchedule,
+      lastModifiedAt: Date.now(),
+    };
+
+    onUpdatePlan(syncCurriculumToSchedule(updatedPlan));
+    playChime("click");
+  };
+
   // Save Module
   const handleSaveModule = () => {
     if (!moduleTitle.trim()) return;
@@ -153,12 +186,37 @@ export function CurriculumRoadmapView({
           : m
       );
     } else {
+      const newModuleId = `mod_${Date.now()}`;
+      const initialTask: Task = {
+        id: `${plan.id}_${modules.length}_0`,
+        title: `${moduleTitle.trim()} - Core Practice & Study`,
+        description: moduleSummary.trim() || `Fundamental concepts and study exercises for ${moduleTitle.trim()}`,
+        duration_minutes: 60,
+        resource_type: "Practice",
+        completed: false,
+      };
+
       const newModule: CurriculumModule = {
-        id: `mod_${Date.now()}`,
+        id: newModuleId,
         title: moduleTitle.trim(),
         summary: moduleSummary.trim(),
         estimated_hours: 2,
-        topics: [],
+        topics: [
+          {
+            id: `topic_${newModuleId}`,
+            name: moduleTitle.trim(),
+            description: moduleSummary.trim() || `Study materials for ${moduleTitle.trim()}`,
+            difficulty: "Intermediate",
+            priority: "Medium",
+            estimated_duration_minutes: 60,
+            actual_minutes_spent: 0,
+            confidence: 3,
+            completion_percentage: 0,
+            status: "Not Started",
+            resources: [],
+            tasks: [initialTask],
+          },
+        ],
       };
       updatedModules = [...modules, newModule];
     }
@@ -634,6 +692,8 @@ export function CurriculumRoadmapView({
             setResourceFilter("All");
             onSearchChange("");
           }}
+          onEditModule={handleEditModule}
+          onDeleteModule={handleDeleteModule}
         />
       )}
 
@@ -647,6 +707,8 @@ export function CurriculumRoadmapView({
           activeTimerTaskId={activeTimerTaskId}
           searchQuery={searchQuery}
           resourceFilter={resourceFilter}
+          onEditModule={handleEditModule}
+          onDeleteModule={handleDeleteModule}
         />
       )}
 
@@ -660,6 +722,8 @@ export function CurriculumRoadmapView({
           activeTimerTaskId={activeTimerTaskId}
           searchQuery={searchQuery}
           resourceFilter={resourceFilter}
+          onEditModule={handleEditModule}
+          onDeleteModule={handleDeleteModule}
         />
       )}
 
@@ -712,21 +776,39 @@ export function CurriculumRoadmapView({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsModuleModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveModule}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white transition shadow-xs cursor-pointer"
-              >
-                Save Module
-              </button>
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+              {editingModule ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const modIdx = modules.findIndex((m) => m.id === editingModule.id);
+                    setIsModuleModalOpen(false);
+                    if (modIdx >= 0) handleDeleteModule(modIdx);
+                  }}
+                  className="px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Module</span>
+                </button>
+              ) : (
+                <div />
+              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModuleModalOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveModule}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white transition shadow-xs cursor-pointer"
+                >
+                  {editingModule ? "Update Module" : "Save Module"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -12,6 +12,8 @@ import {
   PlayCircle,
   FileText,
   Layers,
+  Edit3,
+  Trash2,
 } from "lucide-react";
 import { SavedPlan, Task, ResourceType } from "@/types/study";
 import { playChime } from "@/lib/utils";
@@ -27,6 +29,8 @@ interface TaskStreamTableProps {
   selectedPeriodIndex: number | null;
   onClearPeriodFilter?: () => void;
   onViewAllClick?: () => void;
+  onEditModule?: (moduleIndex: number) => void;
+  onDeleteModule?: (moduleIndex: number) => void;
 }
 
 export function TaskStreamTable({
@@ -40,6 +44,8 @@ export function TaskStreamTable({
   selectedPeriodIndex,
   onClearPeriodFilter,
   onViewAllClick,
+  onEditModule,
+  onDeleteModule,
 }: TaskStreamTableProps) {
   const [expandedTaskIds, setExpandedTaskIds] = useState<Record<string, boolean>>({});
 
@@ -65,7 +71,7 @@ export function TaskStreamTable({
     plan.schedule.forEach((period, pIdx) => {
       period.tasks.forEach((task, tIdx) => {
         const taskId = `${plan.id}_${pIdx}_${tIdx}`;
-        const code = `TASK-${overallIndex.toString().padStart(2, "0")}`;
+        const code = overallIndex.toString().padStart(2, "0");
         overallIndex++;
         list.push({
           task,
@@ -104,6 +110,38 @@ export function TaskStreamTable({
       return true;
     });
   }, [allTasks, selectedPeriodIndex, searchQuery, resourceFilter]);
+
+  // Group filtered tasks by periodIndex
+  const tasksByPeriod = React.useMemo(() => {
+    const map = new Map<number, typeof filteredTasks>();
+    filteredTasks.forEach((item) => {
+      const arr = map.get(item.periodIndex) || [];
+      arr.push(item);
+      map.set(item.periodIndex, arr);
+    });
+    return map;
+  }, [filteredTasks]);
+
+  const visiblePeriods = React.useMemo(() => {
+    return plan.schedule
+      .map((period, pIdx) => ({
+        period,
+        pIdx,
+        tasks: tasksByPeriod.get(pIdx) || [],
+      }))
+      .filter(({ pIdx, tasks }) => {
+        if (selectedPeriodIndex !== null && pIdx !== selectedPeriodIndex) {
+          return false;
+        }
+        if (
+          (searchQuery.trim() || (resourceFilter && resourceFilter !== "All")) &&
+          tasks.length === 0
+        ) {
+          return false;
+        }
+        return true;
+      });
+  }, [plan.schedule, tasksByPeriod, selectedPeriodIndex, searchQuery, resourceFilter]);
 
   const getResourceBadge = (type: ResourceType) => {
     const lower = (type || "").toLowerCase();
@@ -191,7 +229,7 @@ export function TaskStreamTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredTasks.length === 0 ? (
+            {visiblePeriods.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-12 text-center text-slate-400">
                   <p className="font-medium">No tasks found matching your filter criteria.</p>
@@ -207,142 +245,201 @@ export function TaskStreamTable({
                 </td>
               </tr>
             ) : (
-              filteredTasks.map(({ task, taskId, periodLabel, code }) => {
-                const isCompleted = !!completedTasksMap[taskId];
-                const isExpanded = !!expandedTaskIds[taskId];
-                const isTimerActive = activeTimerTaskId === taskId;
-                const badge = getResourceBadge(task.resource_type);
-
-                return (
-                  <React.Fragment key={taskId}>
-                    <tr
-                      className={`group transition-colors duration-100 ${
-                        isCompleted
-                          ? "bg-slate-50/50 text-slate-400"
-                          : "hover:bg-slate-50/70 text-slate-700"
-                      }`}
-                    >
-                      {/* Checkbox Column */}
-                      <td className="py-3 px-3.5 text-center align-top">
-                        <button
-                          type="button"
-                          onClick={() => handleCheckboxClick(taskId, isCompleted)}
-                          aria-label={`Mark ${task.title} as ${isCompleted ? "incomplete" : "complete"}`}
-                          className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition cursor-pointer mx-auto ${
-                            isCompleted
-                              ? "bg-emerald-600 border-emerald-600 text-white font-bold"
-                              : "border-slate-300 bg-white hover:border-emerald-500 text-transparent"
-                          }`}
-                        >
-                          <Check className="w-3 h-3 stroke-[3]" />
-                        </button>
-                      </td>
-
-                      {/* Code ID */}
-                      <td className="py-3 px-3 font-mono text-[11px] text-slate-400 align-top whitespace-nowrap">
-                        {code}
-                      </td>
-
-                      {/* Title & Accordion Toggle */}
-                      <td className="py-3 px-3 align-top min-w-[200px]">
-                        <div className="flex items-start gap-2">
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(taskId)}
-                            className="mt-0.5 p-0.5 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer shrink-0"
-                            title={isExpanded ? "Collapse" : "Expand"}
-                          >
-                            {isExpanded ? (
-                              <ChevronDown className="w-3.5 h-3.5" />
-                            ) : (
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                          <div className="min-w-0">
-                            <span
-                              onClick={() => toggleExpand(taskId)}
-                              className={`font-semibold cursor-pointer block ${
-                                isCompleted
-                                  ? "line-through text-slate-400"
-                                  : "text-slate-900 hover:text-emerald-700"
-                              }`}
-                            >
-                              {task.title}
+              visiblePeriods.map(({ period, pIdx, tasks }) => (
+                <React.Fragment key={`period_group_${pIdx}`}>
+                  {/* Module Group Header Row */}
+                  <tr className="bg-slate-50/90 border-y border-slate-200">
+                    <td colSpan={7} className="py-2.5 px-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase tracking-wide shrink-0">
+                            Module {pIdx + 1}
+                          </span>
+                          <span className="font-bold text-xs text-slate-900 truncate">
+                            {period.period_label}
+                          </span>
+                          {period.topic_summary && (
+                            <span className="text-[11px] text-slate-500 truncate hidden lg:inline">
+                              • {period.topic_summary}
                             </span>
-                            {/* Mobile only badges */}
-                            <div className="flex sm:hidden items-center gap-1.5 mt-1.5 flex-wrap">
-                              <span
-                                className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-medium border ${badge.className}`}
-                              >
-                                {badge.label}
-                              </span>
-                              <span className="font-mono text-[10px] text-slate-500">
-                                {task.duration_minutes}m
-                              </span>
-                            </div>
-                          </div>
+                          )}
                         </div>
-                      </td>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[11px] font-mono text-slate-500 mr-1.5 hidden sm:inline">
+                            {period.tasks.length} {period.tasks.length === 1 ? "task" : "tasks"}
+                          </span>
+                          {onEditModule && (
+                            <button
+                              type="button"
+                              onClick={() => onEditModule(pIdx)}
+                              title={`Edit module: ${period.period_label}`}
+                              className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-white rounded transition cursor-pointer"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {onDeleteModule && (
+                            <button
+                              type="button"
+                              onClick={() => onDeleteModule(pIdx)}
+                              title={`Delete module: ${period.period_label}`}
+                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-white rounded transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
 
-                      {/* Milestone Period */}
-                      <td className="py-3 px-3 text-slate-500 align-top hidden md:table-cell truncate max-w-[160px]">
-                        {periodLabel}
-                      </td>
-
-                      {/* Category Badge */}
-                      <td className="py-3 px-3 align-top hidden sm:table-cell">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${badge.className}`}
-                        >
-                          {badge.icon}
-                          <span>{badge.label}</span>
-                        </span>
-                      </td>
-
-                      {/* Duration */}
-                      <td className="py-3 px-3 font-mono text-slate-600 align-top text-right whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 text-[11px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          {task.duration_minutes}m
-                        </span>
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-3 px-4 text-center align-top">
-                        <button
-                          type="button"
-                          onClick={() => onStartFocus(task, taskId, periodLabel)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer ${
-                            isTimerActive
-                              ? "bg-emerald-50 border border-emerald-300 text-emerald-700 font-semibold"
-                              : "bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700"
-                          }`}
-                          title="Start focus timer"
-                        >
-                          <Play className="w-2.5 h-2.5 fill-current" />
-                          <span>Focus</span>
-                        </button>
+                  {/* Tasks under this module */}
+                  {tasks.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-4 px-6 text-center text-slate-400 text-xs italic bg-slate-50/30">
+                        No tasks in this module yet.
                       </td>
                     </tr>
+                  ) : (
+                    tasks.map(({ task, taskId, periodLabel, code }) => {
+                      const isCompleted = !!completedTasksMap[taskId];
+                      const isExpanded = !!expandedTaskIds[taskId];
+                      const isTimerActive = activeTimerTaskId === taskId;
+                      const badge = getResourceBadge(task.resource_type);
 
-                    {/* Expandable Description Row */}
-                    {isExpanded && (
-                      <tr className="bg-slate-50/70">
-                        <td colSpan={7} className="py-3 px-6 sm:px-12 text-xs text-slate-700 border-b border-slate-100">
-                          <div className="bg-white border border-slate-200 rounded-lg p-3.5 space-y-1.5 shadow-2xs">
-                            <span className="font-semibold text-emerald-800 text-[11px] block">
-                              Task Instructions & Key Concepts
-                            </span>
-                            <p className="text-slate-600 leading-relaxed whitespace-pre-line text-xs">
-                              {task.description}
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
+                      return (
+                        <React.Fragment key={taskId}>
+                          <tr
+                            className={`group transition-colors duration-100 ${
+                              isCompleted
+                                ? "bg-slate-50/50 text-slate-400"
+                                : "hover:bg-slate-50/70 text-slate-700"
+                            }`}
+                          >
+                            {/* Checkbox Column */}
+                            <td className="py-3 px-3.5 text-center align-top">
+                              <button
+                                type="button"
+                                onClick={() => handleCheckboxClick(taskId, isCompleted)}
+                                aria-label={`Mark ${task.title} as ${isCompleted ? "incomplete" : "complete"}`}
+                                className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition cursor-pointer mx-auto ${
+                                  isCompleted
+                                    ? "bg-emerald-600 border-emerald-600 text-white font-bold"
+                                    : "border-slate-300 bg-white hover:border-emerald-500 text-transparent"
+                                }`}
+                              >
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </button>
+                            </td>
+
+                            {/* Code ID */}
+                            <td className="py-3 px-3 font-mono text-[11px] text-slate-400 align-top whitespace-nowrap">
+                              {code}
+                            </td>
+
+                            {/* Title & Accordion Toggle */}
+                            <td className="py-3 px-3 align-top min-w-[200px]">
+                              <div className="flex items-start gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpand(taskId)}
+                                  className="mt-0.5 p-0.5 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer shrink-0"
+                                  title={isExpanded ? "Collapse" : "Expand"}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                                <div className="min-w-0">
+                                  <span
+                                    onClick={() => toggleExpand(taskId)}
+                                    className={`font-semibold cursor-pointer block ${
+                                      isCompleted
+                                        ? "line-through text-slate-400"
+                                        : "text-slate-900 hover:text-emerald-700"
+                                    }`}
+                                  >
+                                    {task.title}
+                                  </span>
+                                  {/* Mobile only badges */}
+                                  <div className="flex sm:hidden items-center gap-1.5 mt-1.5 flex-wrap">
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-medium border ${badge.className}`}
+                                    >
+                                      {badge.label}
+                                    </span>
+                                    <span className="font-mono text-[10px] text-slate-500">
+                                      {task.duration_minutes}m
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Milestone Period */}
+                            <td className="py-3 px-3 text-slate-500 align-top hidden md:table-cell truncate max-w-[160px]">
+                              {periodLabel}
+                            </td>
+
+                            {/* Category Badge */}
+                            <td className="py-3 px-3 align-top hidden sm:table-cell">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${badge.className}`}
+                              >
+                                {badge.icon}
+                                <span>{badge.label}</span>
+                              </span>
+                            </td>
+
+                            {/* Duration */}
+                            <td className="py-3 px-3 font-mono text-slate-600 align-top text-right whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 text-[11px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                {task.duration_minutes}m
+                              </span>
+                            </td>
+
+                            {/* Action */}
+                            <td className="py-3 px-4 text-center align-top">
+                              <button
+                                type="button"
+                                onClick={() => onStartFocus(task, taskId, periodLabel)}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer ${
+                                  isTimerActive
+                                    ? "bg-emerald-50 border border-emerald-300 text-emerald-700 font-semibold"
+                                    : "bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700"
+                                }`}
+                                title="Start focus timer"
+                              >
+                                <Play className="w-2.5 h-2.5 fill-current" />
+                                <span>Focus</span>
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* Expandable Description Row */}
+                          {isExpanded && (
+                            <tr className="bg-slate-50/70">
+                              <td colSpan={7} className="py-3 px-6 sm:px-12 text-xs text-slate-700 border-b border-slate-100">
+                                <div className="bg-white border border-slate-200 rounded-lg p-3.5 space-y-1.5 shadow-2xs">
+                                  <span className="font-semibold text-emerald-800 text-[11px] block">
+                                    Task Instructions & Key Concepts
+                                  </span>
+                                  <p className="text-slate-600 leading-relaxed whitespace-pre-line text-xs">
+                                    {task.description}
+                                  </p>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })
+                  )}
+                </React.Fragment>
+              ))
             )}
           </tbody>
         </table>

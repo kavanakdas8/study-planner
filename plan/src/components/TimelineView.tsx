@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit3, Trash2 } from "lucide-react";
 import { SavedPlan, Task } from "@/types/study";
 import { TaskCard } from "./TaskCard";
 import { formatMinutes } from "@/lib/utils";
@@ -14,6 +14,8 @@ interface TimelineViewProps {
   activeTimerTaskId: string | null;
   searchQuery: string;
   resourceFilter: string;
+  onEditModule?: (moduleIndex: number) => void;
+  onDeleteModule?: (moduleIndex: number) => void;
 }
 
 export function TimelineView({
@@ -24,6 +26,8 @@ export function TimelineView({
   activeTimerTaskId,
   searchQuery,
   resourceFilter,
+  onEditModule,
+  onDeleteModule,
 }: TimelineViewProps) {
   const [collapsedPeriods, setCollapsedPeriods] = useState<Record<number, boolean>>({});
 
@@ -124,6 +128,34 @@ export function TimelineView({
                     {periodPercent}%
                   </span>
                 </div>
+
+                {onEditModule && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditModule(pIdx);
+                    }}
+                    title={`Edit module: ${period.period_label}`}
+                    className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-slate-100 rounded transition cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                {onDeleteModule && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteModule(pIdx);
+                    }}
+                    title={`Delete module: ${period.period_label}`}
+                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
 
                 <button
                   type="button"
