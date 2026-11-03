@@ -1,68 +1,122 @@
 import { StudyPlan } from "@/types/study";
 
+// Shared Web Audio context singleton for smooth, glitch-free audio playback
+let sharedAudioCtx: AudioContext | null = null;
+let lastChimeTime = 0;
+let lastChimeType = "";
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const AudioCtxClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtxClass) return null;
+    if (!sharedAudioCtx || sharedAudioCtx.state === "closed") {
+      sharedAudioCtx = new AudioCtxClass();
+    }
+    if (sharedAudioCtx.state === "suspended") {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Synthesizes a pleasant audio chime using the Web Audio API without needing external sound assets.
+ * Synthesizes a pleasant, natural audio chime using the Web Audio API.
+ * Features acoustic envelope shaping and debouncing to prevent harsh clipping or duplicate audio.
  */
 export function playChime(type: "complete" | "timer" | "click" = "click") {
   if (typeof window === "undefined") return;
 
-  try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
+  const nowMs = Date.now();
+  // Prevent duplicate overlapping sounds triggered within 60ms
+  if (lastChimeType === type && nowMs - lastChimeTime < 60) {
+    return;
+  }
+  lastChimeTime = nowMs;
+  lastChimeType = type;
 
-    const ctx = new AudioCtx();
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
     const now = ctx.currentTime;
 
+    // Master filter to ensure warm, soft acoustics without harsh high frequencies
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(2400, now);
+    filter.connect(ctx.destination);
+
     if (type === "complete") {
-      // Ascending major chord fanfare (C5 -> E5 -> G5)
-      const freqs = [523.25, 659.25, 783.99];
-      freqs.forEach((freq, idx) => {
+      // Warm, satisfying two-tone chime (C5 -> G5) with subtle resonance
+      const notes = [
+        { freq: 523.25, timeOffset: 0, duration: 0.28, gain: 0.12 },
+        { freq: 783.99, timeOffset: 0.08, duration: 0.38, gain: 0.14 },
+        { freq: 1046.5, timeOffset: 0.08, duration: 0.32, gain: 0.05 }, // Soft harmonic sparkle
+      ];
+
+      notes.forEach(({ freq, timeOffset, duration, gain: peakGain }) => {
+        const start = now + timeOffset;
+        const stop = start + duration;
+
         const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const gainNode = ctx.createGain();
+
         osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        osc.frequency.setValueAtTime(freq, start);
 
-        gain.gain.setValueAtTime(0, now + idx * 0.08);
-        gain.gain.linearRampToValueAtTime(0.2, now + idx * 0.08 + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.4);
+        // Gentle attack followed by exponential decay
+        gainNode.gain.setValueAtTime(0.0001, start);
+        gainNode.gain.linearRampToValueAtTime(peakGain, start + 0.012);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, stop);
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        osc.connect(gainNode);
+        gainNode.connect(filter);
 
-        osc.start(now + idx * 0.08);
-        osc.stop(now + idx * 0.08 + 0.45);
+        osc.start(start);
+        osc.stop(stop);
       });
     } else if (type === "timer") {
-      // Bell chime for pomodoro completion
+      // Resonant, gentle notification chime
       const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "triangle";
+      const gainNode = ctx.createGain();
+
+      osc.type = "sine";
       osc.frequency.setValueAtTime(880, now); // A5
 
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.linearRampToValueAtTime(0.18, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      osc.connect(gainNode);
+      gainNode.connect(filter);
 
       osc.start(now);
-      osc.stop(now + 1.25);
+      osc.stop(now + 0.95);
     } else {
-      // Subtle click
+      // Subtle, tactile micro-tick
       const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(800, now);
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      const gainNode = ctx.createGain();
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(450, now);
+
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.linearRampToValueAtTime(0.04, now + 0.005);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+
+      osc.connect(gainNode);
+      gainNode.connect(filter);
+
       osc.start(now);
       osc.stop(now + 0.05);
     }
   } catch {
-    // Graceful fallback if user hasn't interacted or audio not supported
+    // Graceful fallback if audio is not permitted
   }
 }
 

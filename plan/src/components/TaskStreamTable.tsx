@@ -16,7 +16,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { SavedPlan, Task, ResourceType } from "@/types/study";
-import { playChime } from "@/lib/utils";
 
 interface TaskStreamTableProps {
   plan: SavedPlan;
@@ -180,12 +179,7 @@ export function TaskStreamTable({
     };
   };
 
-  const handleCheckboxClick = (taskId: string, isCompleted: boolean) => {
-    if (!isCompleted) {
-      playChime("complete");
-    } else {
-      playChime("click");
-    }
+  const handleCheckboxClick = (taskId: string) => {
     onToggleTask(taskId);
   };
 
@@ -320,7 +314,7 @@ export function TaskStreamTable({
                             <td className="py-3 px-3.5 text-center align-top">
                               <button
                                 type="button"
-                                onClick={() => handleCheckboxClick(taskId, isCompleted)}
+                                onClick={() => handleCheckboxClick(taskId)}
                                 aria-label={`Mark ${task.title} as ${isCompleted ? "incomplete" : "complete"}`}
                                 className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition cursor-pointer mx-auto ${
                                   isCompleted

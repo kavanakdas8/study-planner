@@ -14,7 +14,6 @@ import {
   Play,
 } from "lucide-react";
 import { Task, ResourceType } from "@/types/study";
-import { playChime } from "@/lib/utils";
 
 interface TaskCardProps {
   task: Task;
@@ -75,11 +74,6 @@ export function TaskCard({
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isCompleted) {
-      playChime("complete");
-    } else {
-      playChime("click");
-    }
     onToggleComplete();
   };
 

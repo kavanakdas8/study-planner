@@ -953,7 +953,6 @@ export default function Home() {
         onUpdate={setActiveTimer}
         onCompleteTask={(taskId) => {
           handleToggleTask(taskId);
-          playChime("complete");
         }}
         onClose={() => setActiveTimer(null)}
       />
