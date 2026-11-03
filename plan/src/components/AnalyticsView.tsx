@@ -3,11 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { SavedPlan, StudySession, UserSettings } from "@/types/study";
 import {
-  TrendingUp,
-  Target,
-  Sparkles,
-  Zap,
-  Award,
+  PieChart,
 } from "lucide-react";
 
 interface AnalyticsViewProps {
@@ -19,19 +15,21 @@ interface AnalyticsViewProps {
 }
 
 type TimeRange = "7d" | "30d" | "90d" | "all" | "custom";
+type WeeklyTab = "thisWeek" | "lastWeek";
 
 export function AnalyticsView({
   sessions,
   plan,
-  completedTasksMap,
   userSettings,
 }: AnalyticsViewProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const [hoveredCell, setHoveredCell] = useState<{ date: string; mins: number } | null>(null);
+  const [weeklyTab, setWeeklyTab] = useState<WeeklyTab>("thisWeek");
+  const [hoveredDonutIndex, setHoveredDonutIndex] = useState<number | null>(null);
+  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
 
-  // Determine active date range cutoff
+  // Active date range cutoff calculation
   const rangeCutoff = useMemo(() => {
     const now = Date.now();
     const dayMs = 86400000;
@@ -60,12 +58,17 @@ export function AnalyticsView({
     );
   }, [sessions, rangeCutoff, rangeEndCutoff]);
 
-  // KPI Calculations
-  const kpiData = useMemo(() => {
-    const totalMinutes = filteredSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+  // 1. LEARNING OVERVIEW METRICS
+  const overview = useMemo(() => {
+    const totalMinutes = filteredSessions.reduce(
+      (acc, s) => acc + (s.durationMinutes || 0),
+      0
+    );
     const totalHours = Number((totalMinutes / 60).toFixed(1));
+    const totalSessions = filteredSessions.length;
+    const avgSessionMinutes =
+      totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0;
 
-    // Unique active days in window
     const activeDaysSet = new Set<string>();
     filteredSessions.forEach((s) => {
       const dateStr = new Date(s.completedAt).toISOString().split("T")[0];
@@ -73,153 +76,49 @@ export function AnalyticsView({
     });
 
     const activeDaysCount = activeDaysSet.size;
-    const avgDailyMinutes = activeDaysCount > 0 ? Math.round(totalMinutes / activeDaysCount) : 0;
+    const avgDailyMinutes =
+      activeDaysCount > 0 ? Math.round(totalMinutes / activeDaysCount) : 0;
     const avgDailyHours = Number((avgDailyMinutes / 60).toFixed(1));
-
-    // Tasks completed in window
-    const tasksCompletedInWindow = filteredSessions.filter((s) => s.completed).length;
-
-    // Plan progress
-    let planTotalTasks = 0;
-    let planDoneTasks = 0;
-    let remainingMinutes = 0;
-    if (plan) {
-      plan.schedule.forEach((p, pIdx) => {
-        p.tasks.forEach((t, tIdx) => {
-          planTotalTasks++;
-          const taskId = `${plan.id}_${pIdx}_${tIdx}`;
-          if (completedTasksMap[taskId]) {
-            planDoneTasks++;
-          } else {
-            remainingMinutes += t.duration_minutes || 0;
-          }
-        });
-      });
-    }
-
-    const curriculumPct = planTotalTasks > 0 ? Math.round((planDoneTasks / planTotalTasks) * 100) : 0;
-    const remainingHours = Number((remainingMinutes / 60).toFixed(1));
-
-    // Streak calculation (continuous days from today backwards)
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
-
-    const todayStr = new Date().toISOString().split("T")[0];
-    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-
-    // Current streak
-    let cursor = new Date();
-    if (!activeDaysSet.has(todayStr) && activeDaysSet.has(yesterdayStr)) {
-      cursor = new Date(Date.now() - 86400000);
-    }
-
-    while (activeDaysSet.has(cursor.toISOString().split("T")[0])) {
-      currentStreak++;
-      cursor = new Date(cursor.getTime() - 86400000);
-    }
-
-    // Longest streak across all dates
-    const allActiveDaysSorted = Array.from(new Set(sessions.map((s) => new Date(s.completedAt).toISOString().split("T")[0]))).sort();
-    let prevTime = 0;
-    allActiveDaysSorted.forEach((dStr) => {
-      const t = new Date(dStr).getTime();
-      if (prevTime === 0 || t - prevTime === 86400000) {
-        tempStreak++;
-      } else {
-        tempStreak = 1;
-      }
-      longestStreak = Math.max(longestStreak, tempStreak);
-      prevTime = t;
-    });
-
-    const onTimeRate = 92;
 
     return {
       totalHours,
       totalMinutes,
+      totalSessions,
+      avgSessionMinutes,
       activeDaysCount,
       avgDailyHours,
-      tasksCompletedInWindow,
-      curriculumPct,
-      remainingHours,
-      currentStreak: Math.max(currentStreak, activeDaysSet.has(todayStr) ? 1 : 0),
-      longestStreak: Math.max(longestStreak, currentStreak),
-      onTimeRate,
     };
-  }, [filteredSessions, plan, completedTasksMap, sessions]);
+  }, [filteredSessions]);
 
-  // Activity Heatmap (Last 16 weeks / 112 days grid)
-  const heatmapData = useMemo(() => {
-    const days: { date: string; dayOfWeek: number; minutes: number }[] = [];
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+  // 2. STUDY TIME DISTRIBUTION (DONUT CHART)
+  const distributionColors = useMemo(
+    () => [
+      "#059669", // emerald-600
+      "#10b981", // emerald-500
+      "#34d399", // emerald-400
+      "#0d9488", // teal-600
+      "#0284c7", // sky-600
+      "#6366f1", // indigo-500
+      "#8b5cf6", // purple-500
+      "#f59e0b", // amber-500
+    ],
+    []
+  );
 
-    const dateMinsMap = new Map<string, number>();
-    sessions.forEach((s) => {
-      const d = new Date(s.completedAt).toISOString().split("T")[0];
-      dateMinsMap.set(d, (dateMinsMap.get(d) || 0) + (s.durationMinutes || 0));
-    });
-
-    const totalDays = 112; // 16 weeks
-    for (let i = totalDays - 1; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 86400000);
-      const dateStr = d.toISOString().split("T")[0];
-      days.push({
-        date: dateStr,
-        dayOfWeek: d.getDay(),
-        minutes: dateMinsMap.get(dateStr) || 0,
-      });
-    }
-
-    return days;
-  }, [sessions]);
-
-  // Weekly study comparison (This week vs Last week)
-  const weeklyComparison = useMemo(() => {
-    const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const thisWeek = [0, 0, 0, 0, 0, 0, 0];
-    const lastWeek = [0, 0, 0, 0, 0, 0, 0];
-
-    const now = new Date();
-    const currentDay = (now.getDay() + 6) % 7;
-    const startOfThisWeek = new Date(now.getTime() - currentDay * 86400000);
-    startOfThisWeek.setHours(0, 0, 0, 0);
-
-    const startOfLastWeek = new Date(startOfThisWeek.getTime() - 7 * 86400000);
-
-    sessions.forEach((s) => {
-      const d = new Date(s.completedAt);
-      if (d >= startOfThisWeek) {
-        const dayIdx = (d.getDay() + 6) % 7;
-        thisWeek[dayIdx] += s.durationMinutes || 0;
-      } else if (d >= startOfLastWeek && d < startOfThisWeek) {
-        const dayIdx = (d.getDay() + 6) % 7;
-        lastWeek[dayIdx] += s.durationMinutes || 0;
-      }
-    });
-
-    return dayNames.map((name, i) => ({
-      day: name,
-      thisWeekHours: Number((thisWeek[i] / 60).toFixed(1)),
-      lastWeekHours: Number((lastWeek[i] / 60).toFixed(1)),
-    }));
-  }, [sessions]);
-
-  // Subject / Module Distribution for Donut Chart
   const subjectDistribution = useMemo(() => {
     const map = new Map<string, number>();
     filteredSessions.forEach((s) => {
-      const key = s.periodLabel || s.subject || "General Study";
+      const key = s.periodLabel || s.subject || plan?.subject || "General Study";
       map.set(key, (map.get(key) || 0) + (s.durationMinutes || 0));
     });
 
-    // Emerald + cohesive business intelligence palette
-    const colors = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#0ea5e9", "#6366f1"];
-    const totalMins = Array.from(map.values()).reduce((a, b) => a + b, 0) || 1;
+    const totalMins = Array.from(map.values()).reduce((a, b) => a + b, 0);
+    if (totalMins === 0) return [];
 
     let cumulativePct = 0;
-    return Array.from(map.entries()).map(([label, mins], idx) => {
+    const entries = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+
+    return entries.map(([label, mins], idx) => {
       const pct = Math.round((mins / totalMins) * 100);
       const startPct = cumulativePct;
       cumulativePct += pct;
@@ -228,125 +127,288 @@ export function AnalyticsView({
         minutes: mins,
         hours: Number((mins / 60).toFixed(1)),
         percentage: pct,
-        color: colors[idx % colors.length],
+        color: distributionColors[idx % distributionColors.length],
         startPct,
       };
     });
-  }, [filteredSessions]);
+  }, [filteredSessions, plan, distributionColors]);
 
-  // Productivity by Time of Day
-  const productivityByHour = useMemo(() => {
-    const buckets = [
-      { label: "Morning (06:00 - 12:00)", hours: "6-12", minutes: 0 },
-      { label: "Afternoon (12:00 - 17:00)", hours: "12-17", minutes: 0 },
-      { label: "Evening (17:00 - 21:00)", hours: "17-21", minutes: 0 },
-      { label: "Night (21:00 - 06:00)", hours: "21-6", minutes: 0 },
-    ];
+  // 3. WEEKLY STUDY TRENDS (THIS WEEK VS LAST WEEK)
+  const weeklyTrends = useMemo(() => {
+    const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const now = new Date();
+    // ISO week: Monday is day 0
+    const currentIsoDay = (now.getDay() + 6) % 7;
 
-    filteredSessions.forEach((s) => {
-      const hr = new Date(s.startedAt || s.completedAt).getHours();
-      if (hr >= 6 && hr < 12) buckets[0].minutes += s.durationMinutes;
-      else if (hr >= 12 && hr < 17) buckets[1].minutes += s.durationMinutes;
-      else if (hr >= 17 && hr < 21) buckets[2].minutes += s.durationMinutes;
-      else buckets[3].minutes += s.durationMinutes;
+    const startOfThisWeek = new Date(now);
+    startOfThisWeek.setDate(now.getDate() - currentIsoDay);
+    startOfThisWeek.setHours(0, 0, 0, 0);
+
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+    const thisWeekDays = dayNames.map((name, i) => {
+      const d = new Date(startOfThisWeek);
+      d.setDate(startOfThisWeek.getDate() + i);
+      const dayStart = d.getTime();
+      const dayEnd = dayStart + 86400000 - 1;
+      const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+      const dayMins = sessions
+        .filter((s) => s.completedAt >= dayStart && s.completedAt <= dayEnd)
+        .reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+
+      return {
+        day: name,
+        dateStr,
+        minutes: dayMins,
+        hours: Number((dayMins / 60).toFixed(1)),
+      };
     });
 
-    const maxMins = Math.max(1, ...buckets.map((b) => b.minutes));
-    return buckets.map((b) => ({
-      ...b,
-      percentage: Math.round((b.minutes / maxMins) * 100),
-      hours: Number((b.minutes / 60).toFixed(1)),
-    }));
-  }, [filteredSessions]);
+    const lastWeekDays = dayNames.map((name, i) => {
+      const d = new Date(startOfLastWeek);
+      d.setDate(startOfLastWeek.getDate() + i);
+      const dayStart = d.getTime();
+      const dayEnd = dayStart + 86400000 - 1;
+      const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-  // Advanced Metrics
-  const advancedMetrics = useMemo(() => {
-    const totalDays = Math.max(1, Math.round((rangeEndCutoff - rangeCutoff) / 86400000));
-    const consistencyScore = Math.min(100, Math.round((kpiData.activeDaysCount / Math.min(totalDays, 30)) * 100));
+      const dayMins = sessions
+        .filter((s) => s.completedAt >= dayStart && s.completedAt <= dayEnd)
+        .reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
 
-    const totalSessions = filteredSessions.length;
-    const completedSessions = filteredSessions.filter((s) => s.completed).length;
-    const focusEfficiency = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 95;
+      return {
+        day: name,
+        dateStr,
+        minutes: dayMins,
+        hours: Number((dayMins / 60).toFixed(1)),
+      };
+    });
 
-    const estimationAccuracy = 88;
-    const weeksInWindow = Math.max(1, totalDays / 7);
-    const learningVelocity = (kpiData.tasksCompletedInWindow / weeksInWindow).toFixed(1);
+    const thisWeekTotalMinutes = thisWeekDays.reduce((a, b) => a + b.minutes, 0);
+    const thisWeekTotalHours = Number((thisWeekTotalMinutes / 60).toFixed(1));
+    const thisWeekDailyAvg = Number((thisWeekTotalMinutes / 7 / 60).toFixed(1));
 
-    const thisWeekMinutes = weeklyComparison.reduce((a, b) => a + b.thisWeekHours * 60, 0);
-    const targetWeekMinutes = userSettings.study.weeklyStudyTargetHours * 60;
-    const weeklyGoalPct = Math.min(100, Math.round((thisWeekMinutes / Math.max(1, targetWeekMinutes)) * 100));
+    const lastWeekTotalMinutes = lastWeekDays.reduce((a, b) => a + b.minutes, 0);
+    const lastWeekTotalHours = Number((lastWeekTotalMinutes / 60).toFixed(1));
+    const lastWeekDailyAvg = Number((lastWeekTotalMinutes / 7 / 60).toFixed(1));
 
     return {
-      consistencyScore,
-      focusEfficiency,
-      estimationAccuracy,
-      learningVelocity,
-      weeklyGoalPct,
+      thisWeek: {
+        days: thisWeekDays,
+        totalHours: thisWeekTotalHours,
+        totalMinutes: thisWeekTotalMinutes,
+        dailyAvgHours: thisWeekDailyAvg,
+      },
+      lastWeek: {
+        days: lastWeekDays,
+        totalHours: lastWeekTotalHours,
+        totalMinutes: lastWeekTotalMinutes,
+        dailyAvgHours: lastWeekDailyAvg,
+      },
     };
-  }, [rangeCutoff, rangeEndCutoff, kpiData, filteredSessions, weeklyComparison, userSettings]);
+  }, [sessions]);
 
-  // Rule-based weekly insights
-  const weeklyInsights = useMemo(() => {
-    const thisWeekHours = weeklyComparison.reduce((a, b) => a + b.thisWeekHours, 0);
-    const lastWeekHours = weeklyComparison.reduce((a, b) => a + b.lastWeekHours, 0);
+  const activeWeeklyData =
+    weeklyTab === "thisWeek" ? weeklyTrends.thisWeek : weeklyTrends.lastWeek;
 
-    const delta = lastWeekHours > 0
-      ? Math.round(((thisWeekHours - lastWeekHours) / lastWeekHours) * 100)
-      : 15;
+  const maxWeeklyHour = useMemo(() => {
+    const maxH = Math.max(
+      ...activeWeeklyData.days.map((d) => d.hours),
+      2
+    );
+    return Math.ceil(maxH);
+  }, [activeWeeklyData]);
 
-    return [
-      {
-        icon: TrendingUp,
-        title: "Study Velocity",
-        text: delta >= 0
-          ? `Study velocity increased by ${Math.abs(delta)}% compared to the previous week.`
-          : `Study volume is ${Math.abs(delta)}% below last week's pace. Catch up over the weekend.`,
-        positive: delta >= 0,
-        badge: delta >= 0 ? `+${delta}% pace` : `${delta}% pace`,
-      },
-      {
-        icon: Zap,
-        title: "Peak Focus Window",
-        text: "Your peak focus window occurs between 7:00 PM and 9:00 PM, yielding the highest session completion rate.",
-        positive: true,
-        badge: "Optimal Zone",
-      },
-      {
-        icon: Target,
-        title: "Execution Accuracy",
-        text: `You have completed ${kpiData.tasksCompletedInWindow} tasks this period with an on-time accuracy of ${kpiData.onTimeRate}%.`,
-        positive: true,
-        badge: `${kpiData.onTimeRate}% on-time`,
-      },
-      {
-        icon: Award,
-        title: "Study Streak Momentum",
-        text: `Current study streak stands at ${kpiData.currentStreak} consecutive active days. Longest all-time streak is ${kpiData.longestStreak} days.`,
-        positive: true,
-        badge: `${kpiData.currentStreak} days streak`,
-      },
+  // 4. PLANNED VS ACTUAL STUDY TIME
+  const plannedVsActual = useMemo(() => {
+    // Scheduled curriculum hours
+    let scheduledMinutes = 0;
+    if (plan?.schedule) {
+      plan.schedule.forEach((period) => {
+        period.tasks.forEach((t) => {
+          scheduledMinutes += t.duration_minutes || 0;
+        });
+      });
+    }
+
+    if (scheduledMinutes === 0 && plan?.modules) {
+      plan.modules.forEach((m) => {
+        scheduledMinutes += (m.estimated_hours || 0) * 60;
+      });
+    }
+
+    // Default fallback if no curriculum tasks: weekly target hours
+    if (scheduledMinutes === 0 && userSettings?.study?.weeklyStudyTargetHours) {
+      scheduledMinutes = userSettings.study.weeklyStudyTargetHours * 60;
+    }
+
+    const plannedHours = Number((scheduledMinutes / 60).toFixed(1));
+    const actualMinutes = filteredSessions.reduce(
+      (acc, s) => acc + (s.durationMinutes || 0),
+      0
+    );
+    const actualHours = Number((actualMinutes / 60).toFixed(1));
+
+    const diffMinutes = actualMinutes - scheduledMinutes;
+    const diffHours = Number((Math.abs(diffMinutes) / 60).toFixed(1));
+    const isAheadOrMet = diffMinutes >= 0;
+    const pctAchieved =
+      scheduledMinutes > 0
+        ? Math.min(100, Math.round((actualMinutes / scheduledMinutes) * 100))
+        : 100;
+
+    // Module-by-module planned vs actual breakdown if available
+    const moduleBreakdown = (plan?.modules || []).map((m) => {
+      const modPlannedHours = m.estimated_hours || 0;
+      const modSessions = filteredSessions.filter(
+        (s) =>
+          s.periodLabel === m.title ||
+          s.subject === m.title ||
+          s.periodLabel?.toLowerCase().includes(m.title.toLowerCase())
+      );
+      const modActualMinutes = modSessions.reduce(
+        (sum, s) => sum + (s.durationMinutes || 0),
+        0
+      );
+      const modActualHours = Number((modActualMinutes / 60).toFixed(1));
+      return {
+        title: m.title,
+        plannedHours: modPlannedHours,
+        actualHours: modActualHours,
+        pct:
+          modPlannedHours > 0
+            ? Math.min(100, Math.round((modActualHours / modPlannedHours) * 100))
+            : 100,
+      };
+    });
+
+    return {
+      plannedHours,
+      actualHours,
+      diffHours,
+      isAheadOrMet,
+      pctAchieved,
+      moduleBreakdown,
+    };
+  }, [plan, filteredSessions, userSettings]);
+
+  // 4. SMART STUDY INSIGHTS (RULE-BASED DERIVED FROM ACTUAL DATA)
+  const smartInsights = useMemo(() => {
+    const insights: Array<{
+      title: string;
+      category: string;
+      description: string;
+      hours?: string;
+    }> = [];
+
+    // 1. Most studied subject
+    if (subjectDistribution.length > 0) {
+      const topSubject = subjectDistribution[0];
+      insights.push({
+        title: "Primary Focus Area",
+        category: "Distribution",
+        description: `${topSubject.label} is your most studied subject, accounting for ${topSubject.hours} hours (${topSubject.percentage}% of all recorded focus time).`,
+      });
+    }
+
+    // 2. Subject receiving least attention
+    if (subjectDistribution.length > 1) {
+      const leastSubject = subjectDistribution[subjectDistribution.length - 1];
+      insights.push({
+        title: "Subject Needs Attention",
+        category: "Curriculum Balance",
+        description: `${leastSubject.label} has logged only ${leastSubject.hours} hours (${leastSubject.percentage}%). Consider allocating your next focus sessions here to maintain even progress.`,
+      });
+    }
+
+    // 3. Most productive day
+    const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+    const dayLabels = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
     ];
-  }, [weeklyComparison, kpiData]);
+    sessions.forEach((s) => {
+      const dayIdx = new Date(s.completedAt).getDay();
+      dayTotals[dayIdx] += s.durationMinutes || 0;
+    });
 
-  // Emerald Heatmap Scale
-  const getHeatmapColor = (mins: number) => {
-    if (mins === 0) return "bg-slate-100 border-slate-200/60";
-    if (mins < 30) return "bg-emerald-100 border-emerald-200";
-    if (mins < 60) return "bg-emerald-300 border-emerald-400";
-    if (mins < 120) return "bg-emerald-500 border-emerald-600";
-    return "bg-emerald-700 border-emerald-800";
-  };
+    let maxDayIdx = 1; // Default Monday
+    let maxDayMins = 0;
+    dayTotals.forEach((mins, idx) => {
+      if (mins > maxDayMins) {
+        maxDayMins = mins;
+        maxDayIdx = idx;
+      }
+    });
+
+    const peakDayName = dayLabels[maxDayIdx];
+    const peakDayHours = Number((maxDayMins / 60).toFixed(1));
+    insights.push({
+      title: "Peak Productivity Day",
+      category: "Rhythm",
+      hours: `${peakDayHours} hrs`,
+      description: `${peakDayName}s are your highest-output days, logging a total of ${peakDayHours} hours across your study history.`,
+    });
+
+    // 4. Average focus-session length
+    const avgMins = overview.avgSessionMinutes;
+    let rhythmText = "";
+    if (avgMins >= 45) {
+      rhythmText = `Your average session duration of ${avgMins} minutes reflects sustained deep work capability, comfortably exceeding standard Pomodoro blocks.`;
+    } else if (avgMins >= 25) {
+      rhythmText = `Your average session duration of ${avgMins} minutes aligns closely with the standard 25-minute Pomodoro focus interval.`;
+    } else if (avgMins > 0) {
+      rhythmText = `Your average session duration is ${avgMins} minutes. Consider aiming for uninterrupted 25-minute focus intervals for deeper retention.`;
+    } else {
+      rhythmText =
+        "Start a focus timer to measure your average session duration and build consistent learning momentum.";
+    }
+
+    insights.push({
+      title: "Focus Session Rhythm",
+      category: "Endurance",
+      description: rhythmText,
+    });
+
+    // 5. Difference between planned and actual study time
+    const { plannedHours, actualHours, diffHours, isAheadOrMet, pctAchieved } =
+      plannedVsActual;
+    let pacingText = "";
+    if (plannedHours > 0) {
+      if (isAheadOrMet) {
+        pacingText = `You have completed ${pctAchieved}% of your planned curriculum target, recording ${actualHours} hours against a ${plannedHours}h target (+${diffHours}h ahead).`;
+      } else {
+        pacingText = `You have logged ${actualHours} hours out of ${plannedHours} planned hours (${pctAchieved}% achieved). You need ${diffHours} more hours to reach the target.`;
+      }
+    } else {
+      pacingText = `You have logged ${actualHours} total study hours. Set up a curriculum schedule to track planned versus actual progress.`;
+    }
+
+    insights.push({
+      title: "Planned vs Actual Pace",
+      category: "Milestone Pacing",
+      description: pacingText,
+    });
+
+    return insights;
+  }, [subjectDistribution, sessions, overview.avgSessionMinutes, plannedVsActual]);
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* SECTION HEADER & DATE RANGE FILTER BAR */}
+      {/* HEADER & DATE RANGE FILTER BAR */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Analytics & Learning Velocity
+            Analytics & Progress
           </h1>
           <p className="text-xs text-slate-500 max-w-xl">
-            Real study performance metrics, session history telemetry, and time-estimation analytics.
+            Detailed performance telemetry, study time distribution, and curriculum pacing insights.
           </p>
         </div>
 
@@ -364,7 +426,13 @@ export function AnalyticsView({
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {r === "7d" ? "7 Days" : r === "30d" ? "30 Days" : r === "90d" ? "90 Days" : "All Time"}
+                {r === "7d"
+                  ? "7 Days"
+                  : r === "30d"
+                  ? "30 Days"
+                  : r === "90d"
+                  ? "90 Days"
+                  : "All Time"}
               </button>
             ))}
           </div>
@@ -389,423 +457,370 @@ export function AnalyticsView({
         </div>
       </div>
 
-      {/* 8 KPI METRIC CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="text-[11px] text-slate-500">
-            Total Hours
+      {/* FEATURE 1: LEARNING OVERVIEW (4 KEY METRIC CARDS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Study Time */}
+        <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-2xs space-y-2">
+          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+            Total Study Time
           </div>
-          <div className="text-xl font-bold font-mono text-slate-900">
-            {kpiData.totalHours} <span className="text-xs font-normal text-slate-400">h</span>
-          </div>
-          <p className="text-[10px] text-slate-400">
-            {kpiData.totalMinutes} focused mins
-          </p>
-        </div>
-
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="text-[11px] text-slate-500">
-            Tasks Done
-          </div>
-          <div className="text-xl font-bold font-mono text-slate-900">
-            {kpiData.tasksCompletedInWindow}
-          </div>
-          <p className="text-[10px] text-emerald-700 font-medium">
-            verified completions
-          </p>
-        </div>
-
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="text-[11px] text-slate-500">
-            Curriculum
-          </div>
-          <div className="text-xl font-bold font-mono text-slate-900">
-            {kpiData.curriculumPct}%
-          </div>
-          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-            <div
-              className="bg-emerald-600 h-full rounded-full"
-              style={{ width: `${kpiData.curriculumPct}%` }}
-            />
+          <div>
+            <div className="text-2xl font-bold font-mono text-slate-900">
+              {overview.totalHours}{" "}
+              <span className="text-sm font-normal text-slate-400">hrs</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {overview.totalMinutes.toLocaleString()} minutes recorded
+            </p>
           </div>
         </div>
 
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="text-[11px] text-slate-500">
-            Daily Avg
+        {/* Card 2: Average Study Duration per Session */}
+        <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-2xs space-y-2">
+          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+            Avg Session Duration
           </div>
-          <div className="text-xl font-bold font-mono text-slate-900">
-            {kpiData.avgDailyHours} <span className="text-xs font-normal text-slate-400">h</span>
+          <div>
+            <div className="text-2xl font-bold font-mono text-slate-900">
+              {overview.avgSessionMinutes}{" "}
+              <span className="text-sm font-normal text-slate-400">mins</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Per recorded focus session
+            </p>
           </div>
-          <p className="text-[10px] text-slate-400">
-            {kpiData.activeDaysCount} active days
-          </p>
         </div>
 
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="text-[11px] text-slate-500">
-            Current Streak
+        {/* Card 3: Total Learning Sessions */}
+        <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-2xs space-y-2">
+          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+            Total Sessions
           </div>
-          <div className="text-xl font-bold font-mono text-emerald-700">
-            {kpiData.currentStreak} <span className="text-xs font-normal text-slate-400">days</span>
+          <div>
+            <div className="text-2xl font-bold font-mono text-slate-900">
+              {overview.totalSessions}
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Completed study sessions
+            </p>
           </div>
-          <p className="text-[10px] text-slate-400">
-            active momentum
-          </p>
         </div>
 
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="text-[11px] text-slate-500">
-            Longest Streak
+        {/* Card 4: Average Daily Study Time */}
+        <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-2xs space-y-2">
+          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+            Avg Daily Study Time
           </div>
-          <div className="text-xl font-bold font-mono text-slate-900">
-            {kpiData.longestStreak} <span className="text-xs font-normal text-slate-400">days</span>
+          <div>
+            <div className="text-2xl font-bold font-mono text-slate-900">
+              {overview.avgDailyHours}{" "}
+              <span className="text-sm font-normal text-slate-400">hrs</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Across {overview.activeDaysCount} active days
+            </p>
           </div>
-          <p className="text-[10px] text-slate-400">
-            personal high score
-          </p>
-        </div>
-
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="text-[11px] text-slate-500">
-            Remaining
-          </div>
-          <div className="text-xl font-bold font-mono text-slate-900">
-            {kpiData.remainingHours} <span className="text-xs font-normal text-slate-400">h</span>
-          </div>
-          <p className="text-[10px] text-slate-400">
-            uncompleted scope
-          </p>
-        </div>
-
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="text-[11px] text-slate-500">
-            On-Time Rate
-          </div>
-          <div className="text-xl font-bold font-mono text-emerald-700">
-            {kpiData.onTimeRate}%
-          </div>
-          <p className="text-[10px] text-slate-400">
-            deadline reliability
-          </p>
         </div>
       </div>
 
-      {/* ROW: STUDY ACTIVITY HEATMAP (GITHUB-STYLE CALENDAR IN EMERALD) */}
-      <div className="p-5 sm:p-6 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
+      {/* ROW 2: STUDY TIME DISTRIBUTION & WEEKLY STUDY TRENDS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* FEATURE 2: STUDY TIME DISTRIBUTION (CLEAN DONUT CHART) */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-4 flex flex-col justify-between">
           <div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-              Study Activity Heatmap
-            </h3>
-            <p className="text-xs text-slate-500">
-              Daily focus intensity distribution over the past 16 weeks.
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+                Study Time Distribution
+              </h3>
+              <span className="text-xs text-slate-400 font-mono">
+                {subjectDistribution.length} subjects
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Time spent across courses and modules in the selected window.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>Less</span>
-            <div className="w-3 h-3 rounded-xs bg-slate-100 border border-slate-200" />
-            <div className="w-3 h-3 rounded-xs bg-emerald-100 border border-emerald-200" />
-            <div className="w-3 h-3 rounded-xs bg-emerald-300 border border-emerald-400" />
-            <div className="w-3 h-3 rounded-xs bg-emerald-500 border border-emerald-600" />
-            <div className="w-3 h-3 rounded-xs bg-emerald-700 border border-emerald-800" />
-            <span>More</span>
-          </div>
-        </div>
-
-        {/* Calendar Grid Container */}
-        <div className="overflow-x-auto pb-2 scrollbar-thin">
-          <div className="inline-grid grid-rows-7 grid-flow-col gap-1.5 min-w-[720px]">
-            {heatmapData.map((d) => (
-              <div
-                key={d.date}
-                onMouseEnter={() => setHoveredCell({ date: d.date, mins: d.minutes })}
-                onMouseLeave={() => setHoveredCell(null)}
-                className={`w-3.5 h-3.5 rounded-xs border transition-all cursor-pointer ${getHeatmapColor(
-                  d.minutes
-                )}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Tooltip detail bar */}
-        <div className="h-5 text-xs text-slate-500 font-mono">
-          {hoveredCell ? (
-            <span>
-              <strong className="text-slate-900">{hoveredCell.date}</strong>:{" "}
-              <span className="text-emerald-700 font-bold">
-                {hoveredCell.mins > 0 ? `${hoveredCell.mins} minutes studied` : "No activity recorded"}
-              </span>
-            </span>
-          ) : (
-            <span className="text-slate-400">Hover over any day square to inspect logged session duration.</span>
-          )}
-        </div>
-      </div>
-
-      {/* ROW: VISUAL CHARTS (WEEKLY CHART & SUBJECT DISTRIBUTION) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* CHART 1: WEEKLY STUDY CHART */}
-        <div className="p-5 sm:p-6 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                Weekly Study Volume
-              </h3>
-              <p className="text-xs text-slate-500">
-                Daily hours logged this week vs previous week.
+          {subjectDistribution.length === 0 ? (
+            <div className="p-8 text-center flex flex-col items-center justify-center space-y-2 border border-dashed border-slate-200 rounded-xl bg-slate-50/50 my-auto">
+              <PieChart className="w-8 h-8 text-slate-300" />
+              <p className="text-xs font-semibold text-slate-700">
+                No session data recorded
+              </p>
+              <p className="text-xs text-slate-400 max-w-xs">
+                Log study time using the focus timer to view subject-by-subject distribution.
               </p>
             </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-xs bg-emerald-600" />
-                <span className="text-slate-700 font-medium">This Week</span>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center gap-6 py-2">
+              {/* Donut Chart SVG */}
+              <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="transparent"
+                    stroke="#F1F5F9"
+                    strokeWidth="14"
+                  />
+                  {subjectDistribution.map((item, idx) => {
+                    const circumference = 2 * Math.PI * 38; // ~238.76
+                    const strokeDash = (item.percentage / 100) * circumference;
+                    const strokeOffset = -((item.startPct / 100) * circumference);
+                    const isHovered = hoveredDonutIndex === idx;
+
+                    return (
+                      <circle
+                        key={idx}
+                        cx="50"
+                        cy="50"
+                        r="38"
+                        fill="transparent"
+                        stroke={item.color}
+                        strokeWidth={isHovered ? 16 : 14}
+                        strokeDasharray={`${strokeDash} ${circumference}`}
+                        strokeDashoffset={strokeOffset}
+                        className="transition-all duration-300 cursor-pointer"
+                        onMouseEnter={() => setHoveredDonutIndex(idx)}
+                        onMouseLeave={() => setHoveredDonutIndex(null)}
+                      />
+                    );
+                  })}
+                </svg>
+
+                {/* Donut Center Display */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
+                  {hoveredDonutIndex !== null && subjectDistribution[hoveredDonutIndex] ? (
+                    <>
+                      <span className="text-sm font-bold text-slate-900 truncate max-w-[90px]">
+                        {subjectDistribution[hoveredDonutIndex].percentage}%
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {subjectDistribution[hoveredDonutIndex].hours}h
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-lg font-bold font-mono text-slate-900">
+                        {overview.totalHours}h
+                      </span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">
+                        Total Focus
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Subject Breakdown Legend */}
+              <div className="flex-1 space-y-2.5 w-full">
+                {subjectDistribution.map((item, idx) => {
+                  const isHovered = hoveredDonutIndex === idx;
+                  return (
+                    <div
+                      key={idx}
+                      onMouseEnter={() => setHoveredDonutIndex(idx)}
+                      onMouseLeave={() => setHoveredDonutIndex(null)}
+                      className={`flex items-center justify-between text-xs p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        isHovered ? "bg-slate-100/80" : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate pr-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span
+                          className={`truncate ${
+                            isHovered
+                              ? "font-semibold text-slate-900"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 font-mono text-xs shrink-0">
+                        <span className="text-slate-400">{item.hours}h</span>
+                        <span className="text-slate-900 font-semibold bg-slate-100 px-1.5 py-0.5 rounded">
+                          {item.percentage}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* FEATURE 3: WEEKLY STUDY TRENDS (BAR CHART) */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+                Weekly Study Trends
+              </h3>
+
+              {/* Switcher: This Week vs Last Week */}
+              <div className="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-lg text-xs">
+                <button
+                  type="button"
+                  onClick={() => setWeeklyTab("thisWeek")}
+                  className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                    weeklyTab === "thisWeek"
+                      ? "bg-white text-emerald-800 shadow-2xs font-semibold"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  This Week
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWeeklyTab("lastWeek")}
+                  className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                    weeklyTab === "lastWeek"
+                      ? "bg-white text-emerald-800 shadow-2xs font-semibold"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Last Week
+                </button>
+              </div>
+            </div>
+
+            {/* Weekly Total & Daily Average */}
+            <div className="flex items-center gap-3 text-xs text-slate-500 mt-2">
+              <span>
+                Total:{" "}
+                <strong className="text-slate-900 font-mono">
+                  {activeWeeklyData.totalHours} hrs
+                </strong>
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-xs bg-slate-300" />
-                <span className="text-slate-500">Last Week</span>
+              <span className="text-slate-300">•</span>
+              <span>
+                Daily Avg:{" "}
+                <strong className="text-slate-900 font-mono">
+                  {activeWeeklyData.dailyAvgHours} hrs/day
+                </strong>
               </span>
             </div>
           </div>
 
           {/* Bar Chart Bars */}
-          <div className="h-48 flex items-end justify-between gap-3 pt-6 border-b border-slate-100 pb-2">
-            {weeklyComparison.map((col) => {
-              const maxHour = 4;
-              const thisWeekHeight = Math.min(100, Math.round((col.thisWeekHours / maxHour) * 100));
-              const lastWeekHeight = Math.min(100, Math.round((col.lastWeekHours / maxHour) * 100));
+          <div className="h-44 flex items-end justify-between gap-2 pt-6 border-b border-slate-100 pb-2">
+            {activeWeeklyData.days.map((d, idx) => {
+              const barHeightPct =
+                maxWeeklyHour > 0
+                  ? Math.min(100, Math.round((d.hours / maxWeeklyHour) * 100))
+                  : 0;
+              const isHovered = hoveredBarIndex === idx;
 
               return (
-                <div key={col.day} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-                  <div className="w-full flex items-end justify-center gap-1 h-36">
-                    {/* Last Week Bar */}
+                <div
+                  key={d.day}
+                  onMouseEnter={() => setHoveredBarIndex(idx)}
+                  onMouseLeave={() => setHoveredBarIndex(null)}
+                  className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer"
+                >
+                  {/* Tooltip / Hours Value */}
+                  <div
+                    className={`text-[10px] font-mono transition-opacity ${
+                      isHovered
+                        ? "text-emerald-700 font-bold opacity-100"
+                        : d.hours > 0
+                        ? "text-slate-500 opacity-80"
+                        : "opacity-0"
+                    }`}
+                  >
+                    {d.hours > 0 ? `${d.hours}h` : "0h"}
+                  </div>
+
+                  {/* Vertical Bar */}
+                  <div className="w-full flex items-end justify-center h-28">
                     <div
-                      className="w-2.5 sm:w-3.5 bg-slate-200 hover:bg-slate-300 rounded-t transition-all"
-                      style={{ height: `${Math.max(4, lastWeekHeight)}%` }}
-                      title={`Last Week ${col.day}: ${col.lastWeekHours}h`}
-                    />
-                    {/* This Week Bar */}
-                    <div
-                      className="w-2.5 sm:w-3.5 bg-emerald-600 hover:bg-emerald-700 rounded-t transition-all shadow-2xs"
-                      style={{ height: `${Math.max(4, thisWeekHeight)}%` }}
-                      title={`This Week ${col.day}: ${col.thisWeekHours}h`}
+                      className={`w-full max-w-[32px] rounded-t transition-all duration-300 ${
+                        d.hours > 0
+                          ? isHovered
+                            ? "bg-emerald-500 shadow-xs"
+                            : "bg-emerald-600"
+                          : "bg-slate-100"
+                      }`}
+                      style={{ height: `${Math.max(6, barHeightPct)}%` }}
+                      title={`${d.day} (${d.dateStr}): ${d.hours} hrs (${d.minutes} mins)`}
                     />
                   </div>
-                  <span className="text-xs font-mono text-slate-500">{col.day}</span>
+
+                  {/* Day Label */}
+                  <span
+                    className={`text-xs font-mono transition-colors ${
+                      isHovered
+                        ? "text-emerald-700 font-bold"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {d.day}
+                  </span>
                 </div>
               );
             })}
           </div>
-        </div>
 
-        {/* CHART 2: SUBJECT / MODULE DISTRIBUTION (DONUT) */}
-        <div className="p-5 sm:p-6 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                Subject & Module Allocation
-              </h3>
-              <p className="text-xs text-slate-500">
-                Percentage of study time focused on each curriculum period.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-6 pt-2">
-            {/* SVG Donut Visualizer */}
-            <div className="relative w-40 h-40 shrink-0">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="transparent"
-                  stroke="#F1F5F9"
-                  strokeWidth="16"
-                />
-                {subjectDistribution.map((item, i) => {
-                  const dashLength = (item.percentage / 100) * 238.76;
-                  const dashOffset = -((item.startPct / 100) * 238.76);
-                  return (
-                    <circle
-                      key={i}
-                      cx="50"
-                      cy="50"
-                      r="38"
-                      fill="transparent"
-                      stroke={item.color}
-                      strokeWidth="16"
-                      strokeDasharray={`${dashLength} 238.76`}
-                      strokeDashoffset={dashOffset}
-                      className="transition-all duration-500"
-                    />
-                  );
-                })}
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-lg font-bold font-mono text-slate-900">
-                  {kpiData.totalHours}h
-                </span>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">
-                  Allocated
-                </span>
-              </div>
-            </div>
-
-            {/* Donut Legend */}
-            <div className="flex-1 space-y-2 w-full">
-              {subjectDistribution.map((item, i) => (
-                <div key={i} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 truncate pr-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-slate-700 truncate">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-2 font-mono text-xs shrink-0">
-                    <span className="text-slate-400">{item.hours}h</span>
-                    <span className="text-slate-900 font-bold">{item.percentage}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Bar Chart Footer Date Scope */}
+          <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between">
+            <span>
+              {activeWeeklyData.days[0]?.dateStr} — {activeWeeklyData.days[6]?.dateStr}
+            </span>
+            <span>
+              Target: {userSettings?.study?.weeklyStudyTargetHours || 20} hrs/wk
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ROW: PRODUCTIVITY TRENDS & ADVANCED METRICS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* PRODUCTIVITY BY TIME OF DAY */}
-        <div className="p-5 sm:p-6 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-4">
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-              Productivity Windows (Time of Day)
-            </h3>
-            <p className="text-xs text-slate-500">
-              Identifies your most productive study hours based on recorded focus sessions.
-            </p>
-          </div>
 
-          <div className="space-y-3 pt-2">
-            {productivityByHour.map((b, i) => (
-              <div key={i} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-700 font-medium">{b.label}</span>
-                  <span className="font-mono text-slate-500">
-                    <strong className="text-slate-900">{b.hours}h</strong> ({b.percentage}%)
+
+      {/* FEATURE 4: SMART STUDY INSIGHTS (RULE-BASED DYNAMIC OBSERVATIONS) */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+            Smart Study Insights
+          </h3>
+          <p className="text-xs text-slate-500">
+            Rule-based telemetry observations computed directly from your study sessions and curriculum goals.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+          {smartInsights.map((insight, idx) => (
+            <div
+              key={idx}
+              className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/90 flex flex-col justify-between space-y-3 hover:bg-slate-50 transition-colors"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                    {insight.category}
                   </span>
                 </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
-                  <div
-                    className="bg-emerald-600 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${b.percentage}%` }}
-                  />
+
+                <div className="space-y-1">
+                  <h4 className="text-xs sm:text-sm font-semibold text-slate-900">
+                    {insight.title}
+                  </h4>
+                  {insight.hours && (
+                    <div className="text-lg font-bold font-mono text-slate-900">
+                      {insight.hours}
+                    </div>
+                  )}
                 </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {insight.description}
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ADVANCED COGNITIVE METRICS */}
-        <div className="p-5 sm:p-6 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-4">
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-              Advanced Cognitive & Execution Metrics
-            </h3>
-            <p className="text-xs text-slate-500">
-              Formulas calibrated against consistency, focus depth, and velocity.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase">
-                Consistency Score
-              </span>
-              <div className="text-lg font-bold font-mono text-emerald-700">
-                {advancedMetrics.consistencyScore}%
-              </div>
-              <p className="text-[10px] text-slate-500">
-                % of study days active
-              </p>
             </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase">
-                Focus Efficiency
-              </span>
-              <div className="text-lg font-bold font-mono text-emerald-700">
-                {advancedMetrics.focusEfficiency}%
-              </div>
-              <p className="text-[10px] text-slate-500">
-                completed timer ratio
-              </p>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase">
-                Time Estimation
-              </span>
-              <div className="text-lg font-bold font-mono text-slate-900">
-                {advancedMetrics.estimationAccuracy}%
-              </div>
-              <p className="text-[10px] text-slate-500">
-                planned vs actual accuracy
-              </p>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase">
-                Learning Velocity
-              </span>
-              <div className="text-lg font-bold font-mono text-emerald-700">
-                {advancedMetrics.learningVelocity}
-              </div>
-              <p className="text-[10px] text-slate-500">
-                tasks mastered / week
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* WEEKLY INSIGHTS CARD */}
-      <div className="p-5 sm:p-6 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-emerald-600" />
-          <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-            Weekly Analytical Insights
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          {weeklyInsights.map((insight, idx) => {
-            const Icon = insight.icon;
-            return (
-              <div
-                key={idx}
-                className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3.5"
-              >
-                <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700 shrink-0">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-slate-900">{insight.title}</span>
-                    <span className="text-[10px] font-mono font-medium text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded">
-                      {insight.badge}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {insight.text}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+          ))}
         </div>
       </div>
     </div>
