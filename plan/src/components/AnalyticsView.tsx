@@ -3,9 +3,6 @@
 import React, { useState, useMemo } from "react";
 import { SavedPlan, StudySession, UserSettings } from "@/types/study";
 import {
-  Flame,
-  Clock,
-  CheckCircle2,
   TrendingUp,
   Target,
   Sparkles,
@@ -345,14 +342,6 @@ export function AnalyticsView({
       {/* SECTION HEADER & DATE RANGE FILTER BAR */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono font-bold uppercase tracking-wider">
-              Telemetry Engine
-            </span>
-            <span className="text-xs text-slate-400 font-medium">
-              Live Session Tracking
-            </span>
-          </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Analytics & Learning Velocity
           </h1>
@@ -403,9 +392,8 @@ export function AnalyticsView({
       {/* 8 KPI METRIC CARDS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Total Hours</span>
-            <Clock className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="text-[11px] text-slate-500">
+            Total Hours
           </div>
           <div className="text-xl font-bold font-mono text-slate-900">
             {kpiData.totalHours} <span className="text-xs font-normal text-slate-400">h</span>
@@ -416,9 +404,8 @@ export function AnalyticsView({
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Tasks Done</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="text-[11px] text-slate-500">
+            Tasks Done
           </div>
           <div className="text-xl font-bold font-mono text-slate-900">
             {kpiData.tasksCompletedInWindow}
@@ -429,9 +416,8 @@ export function AnalyticsView({
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Curriculum</span>
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="text-[11px] text-slate-500">
+            Curriculum
           </div>
           <div className="text-xl font-bold font-mono text-slate-900">
             {kpiData.curriculumPct}%
@@ -445,9 +431,8 @@ export function AnalyticsView({
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Daily Avg</span>
-            <Clock className="w-3.5 h-3.5 text-slate-500" />
+          <div className="text-[11px] text-slate-500">
+            Daily Avg
           </div>
           <div className="text-xl font-bold font-mono text-slate-900">
             {kpiData.avgDailyHours} <span className="text-xs font-normal text-slate-400">h</span>
@@ -458,9 +443,8 @@ export function AnalyticsView({
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Current Streak</span>
-            <Flame className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="text-[11px] text-slate-500">
+            Current Streak
           </div>
           <div className="text-xl font-bold font-mono text-emerald-700">
             {kpiData.currentStreak} <span className="text-xs font-normal text-slate-400">days</span>
@@ -471,9 +455,8 @@ export function AnalyticsView({
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Longest Streak</span>
-            <Award className="w-3.5 h-3.5 text-amber-600" />
+          <div className="text-[11px] text-slate-500">
+            Longest Streak
           </div>
           <div className="text-xl font-bold font-mono text-slate-900">
             {kpiData.longestStreak} <span className="text-xs font-normal text-slate-400">days</span>
@@ -484,9 +467,8 @@ export function AnalyticsView({
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Remaining</span>
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
+          <div className="text-[11px] text-slate-500">
+            Remaining
           </div>
           <div className="text-xl font-bold font-mono text-slate-900">
             {kpiData.remainingHours} <span className="text-xs font-normal text-slate-400">h</span>
@@ -497,9 +479,8 @@ export function AnalyticsView({
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>On-Time Rate</span>
-            <Target className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="text-[11px] text-slate-500">
+            On-Time Rate
           </div>
           <div className="text-xl font-bold font-mono text-emerald-700">
             {kpiData.onTimeRate}%

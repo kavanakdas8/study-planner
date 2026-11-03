@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   Menu,
-  Plus,
   Search,
   RotateCcw,
   MoreVertical,
@@ -15,7 +14,7 @@ import { SavedPlan } from "@/types/study";
 interface TopBarProps {
   activePlan: SavedPlan | null;
   onOpenMobileMenu: () => void;
-  onOpenCreateModal: () => void;
+  onOpenCreateModal?: () => void;
   onOpenHistoryModal?: () => void;
   onExportPDF?: () => void;
   onExportMarkdown: () => void;
@@ -29,7 +28,6 @@ interface TopBarProps {
 export function TopBar({
   activePlan,
   onOpenMobileMenu,
-  onOpenCreateModal,
   onClearCompleted,
   onFocusSearch,
   searchQuery = "",
@@ -55,9 +53,6 @@ export function TopBar({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const isMac = typeof window !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-  const shortcutKey = isMac ? "⌘K" : "Ctrl+K";
 
   return (
     <header className="h-15 px-4 sm:px-6 bg-white/95 border-b border-slate-200 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between gap-3">
@@ -151,18 +146,6 @@ export function TopBar({
             </div>
           )}
         </div>
-
-        {/* Primary Action CTA: Emerald Button */}
-        <button
-          type="button"
-          onClick={onOpenCreateModal}
-          title={`Create Plan (${shortcutKey})`}
-          className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium px-3.5 py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span className="hidden sm:inline">Create Plan</span>
-          <span className="sm:hidden">New</span>
-        </button>
 
         {/* Secondary Actions Dropdown */}
         {activePlan && (
