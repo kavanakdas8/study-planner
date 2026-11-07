@@ -34,6 +34,7 @@ interface AppSidebarProps {
   completedTasksMap: Record<string, boolean>;
   activeNavTab?: string;
   onSelectNavTab?: (tab: string) => void;
+  onOpenConversationalPlanner?: () => void;
 }
 
 export function AppSidebar({
@@ -51,6 +52,7 @@ export function AppSidebar({
   completedTasksMap,
   activeNavTab = "dashboard",
   onSelectNavTab,
+  onOpenConversationalPlanner,
 }: AppSidebarProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isExpanded = !collapsed || isHovered;
@@ -141,17 +143,21 @@ export function AppSidebar({
         <button
           type="button"
           onClick={() => {
-            onOpenCreateModal();
+            if (onOpenConversationalPlanner) {
+              onOpenConversationalPlanner();
+            } else {
+              onOpenCreateModal();
+            }
             onCloseMobile();
           }}
-          title={`Create Plan (${shortcutKey})`}
+          title={`AI Study Planner (${shortcutKey})`}
           className={`w-full group flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-all shadow-xs cursor-pointer ${
             !isExpanded ? "justify-center px-0" : ""
           }`}
         >
           <span className="flex items-center gap-2">
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            {isExpanded && <span className="font-semibold text-white whitespace-nowrap">Create Plan</span>}
+            {isExpanded && <span className="font-semibold text-white whitespace-nowrap">New Learning Goal</span>}
           </span>
           {isExpanded && (
             <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-emerald-700/60 border border-emerald-500/40 rounded text-emerald-100">
