@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Sparkles,
   ArrowRight,
   Compass,
   ChevronRight,
@@ -97,12 +96,9 @@ export function LandingPage({
           <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-xs">
             <Compass className="w-5 h-5 text-white" />
           </div>
-          <div className="flex flex-col">
+          <div className="flex items-center">
             <span className="font-bold text-base tracking-tight text-slate-900">
               CuratePlan
-            </span>
-            <span className="text-[10px] font-medium text-emerald-700 uppercase tracking-wider">
-              Conversational Learning
             </span>
           </div>
         </div>
@@ -123,18 +119,10 @@ export function LandingPage({
       {/* MAIN CONVERSATIONAL HERO */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 max-w-4xl mx-auto w-full">
         <div className="w-full space-y-8 text-center animate-fade-in">
-          {/* BADGE */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-medium shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>AI Curriculum Architect & Learning Companion</span>
-          </div>
-
           {/* HEADLINE & SUBHEAD */}
           <div className="space-y-3 max-w-2xl mx-auto">
             <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              {isReturningUser
-                ? "Welcome back. What are we learning today?"
-                : "What would you like to learn today?"}
+              What would you like to learn today?
             </h1>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto">
               Tell me your learning goal. I&apos;ll turn it into a structured
