@@ -8,6 +8,7 @@ import {
   MoreVertical,
   Bell,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { SavedPlan } from "@/types/study";
 
@@ -16,6 +17,7 @@ interface TopBarProps {
   onOpenMobileMenu: () => void;
   onOpenCreateModal?: () => void;
   onOpenHistoryModal?: () => void;
+  onOpenAssistant?: () => void;
   onExportPDF?: () => void;
   onExportMarkdown: () => void;
   onExportICS: () => void;
@@ -28,6 +30,7 @@ interface TopBarProps {
 export function TopBar({
   activePlan,
   onOpenMobileMenu,
+  onOpenAssistant,
   onClearCompleted,
   onFocusSearch,
   searchQuery = "",
@@ -105,6 +108,19 @@ export function TopBar({
 
       {/* Right Actions: Notification Bell + Primary Emerald CTA + Secondary Menu */}
       <div className="flex items-center gap-2 shrink-0">
+        {/* Optional AI Assistant Button */}
+        {onOpenAssistant && (
+          <button
+            type="button"
+            onClick={onOpenAssistant}
+            title="Open AI Assistant"
+            className="px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="hidden sm:inline">AI Assistant</span>
+          </button>
+        )}
+
         {/* Notification Bell */}
         <div className="relative" ref={notifRef}>
           <button

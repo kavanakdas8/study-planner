@@ -16,6 +16,7 @@ import {
   X,
   CheckCircle2,
   Compass,
+  Sparkles,
 } from "lucide-react";
 import { SavedPlan, ActiveTimer } from "@/types/study";
 
@@ -30,6 +31,8 @@ interface AppSidebarProps {
   onDeletePlan: (planId: string) => void;
   onOpenCreateModal: () => void;
   onOpenHistoryModal: () => void;
+  onOpenConversational?: () => void;
+  onOpenAssistant?: () => void;
   activeTimer: ActiveTimer | null;
   completedTasksMap: Record<string, boolean>;
   activeNavTab?: string;
@@ -47,6 +50,8 @@ export function AppSidebar({
   onDeletePlan,
   onOpenCreateModal,
   onOpenHistoryModal,
+  onOpenConversational,
+  onOpenAssistant,
   activeTimer,
   completedTasksMap,
   activeNavTab = "dashboard",
@@ -73,6 +78,11 @@ export function AppSidebar({
   const shortcutKey = isMac ? "⌘K" : "Ctrl+K";
 
   const handleNavClick = (tabId: string) => {
+    if (tabId === "assistant" && onOpenAssistant) {
+      onOpenAssistant();
+      onCloseMobile();
+      return;
+    }
     if (onSelectNavTab) {
       onSelectNavTab(tabId);
     }
@@ -86,6 +96,7 @@ export function AppSidebar({
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "curriculum", label: "Curriculum Roadmap", icon: MapPin },
     { id: "analytics", label: "Analytics & Progress", icon: BarChart3 },
+    { id: "assistant", label: "AI Study Assistant", icon: Sparkles },
     { id: "history", label: "Study History", icon: History },
   ];
 
@@ -98,15 +109,21 @@ export function AppSidebar({
     <div className="flex flex-col h-full bg-white border-r border-slate-200 text-slate-700 select-none transition-all duration-200">
       {/* Brand & Workspace Header */}
       <div className="h-15 px-4 flex items-center justify-between border-b border-slate-200 shrink-0">
-        <div className="flex items-center gap-2.5 overflow-hidden">
+        <div
+          onClick={onOpenConversational}
+          className={`flex items-center gap-2.5 overflow-hidden ${
+            onOpenConversational ? "cursor-pointer group hover:opacity-90 transition" : ""
+          }`}
+          title="Return to Home"
+        >
           {/* Emerald Brand Logo */}
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs group-hover:border-emerald-300 transition">
             <Compass className="w-4 h-4 text-emerald-600 stroke-[2.2]" />
           </div>
 
           {isExpanded && (
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold text-slate-900 tracking-tight leading-none truncate whitespace-nowrap">
+              <span className="text-sm font-bold text-slate-900 tracking-tight leading-none truncate whitespace-nowrap group-hover:text-emerald-700 transition">
                 CuratePlan
               </span>
               <span className="text-[10px] text-slate-400 font-medium tracking-normal mt-0.5 whitespace-nowrap">
@@ -141,7 +158,11 @@ export function AppSidebar({
         <button
           type="button"
           onClick={() => {
-            onOpenCreateModal();
+            if (onOpenConversational) {
+              onOpenConversational();
+            } else {
+              onOpenCreateModal();
+            }
             onCloseMobile();
           }}
           title={`Create Plan (${shortcutKey})`}

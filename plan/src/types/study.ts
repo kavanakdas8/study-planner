@@ -166,3 +166,35 @@ export interface UserSettings {
     milestoneAlerts: boolean;
   };
 }
+
+export type AppViewMode = 'landing' | 'conversation' | 'preview' | 'dashboard';
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+  suggestedReplies?: string[];
+}
+
+export interface ConversationSession {
+  id: string;
+  title: string;
+  createdAt: number;
+  lastModifiedAt: number;
+  messages: ChatMessage[];
+  collectedInfo?: Record<string, unknown>;
+  plan?: StudyPlan | null;
+}
+
+export interface ChatApiResponse {
+  reply: string;
+  suggested_replies: string[];
+  ready_to_generate: boolean;
+  collected_info?: Record<string, unknown>;
+  plan?: StudyPlan | null;
+  has_curriculum_change?: boolean;
+  change_summary?: string | null;
+  updated_plan?: StudyPlan | null;
+}
+

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings } from "@/types/study";
+import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings, AppViewMode, ChatMessage } from "@/types/study";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
 import { HeaderKPI } from "@/components/HeaderKPI";
@@ -13,6 +13,10 @@ import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
 import { AnalyticsView } from "@/components/AnalyticsView";
 import { ExportSyncView } from "@/components/ExportSyncView";
 import { SettingsView } from "@/components/SettingsView";
+import { ConversationalLanding } from "@/components/ConversationalLanding";
+import { StudyConversation } from "@/components/StudyConversation";
+import { CurriculumPreview } from "@/components/CurriculumPreview";
+import { AssistantDrawer } from "@/components/AssistantDrawer";
 import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
 import { exportCurriculumToPDF } from "@/lib/pdfGenerator";
 import {
@@ -23,6 +27,9 @@ import {
   STORAGE_KEY_ACTIVE_TIMER,
   STORAGE_KEY_SESSIONS,
   STORAGE_KEY_SETTINGS,
+  STORAGE_KEY_VIEW_MODE,
+  STORAGE_KEY_CONVERSATION,
+  STORAGE_KEY_PENDING_PLAN,
   DEFAULT_USER_SETTINGS,
   normalizePlanToCurriculum,
   generateSeedSessions,
@@ -190,6 +197,16 @@ export default function Home() {
   // Focus Timer State
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
 
+  // Conversational-First Flow State
+  const [viewMode, setViewMode] = useState<AppViewMode>("landing");
+  const [initialPrompt, setInitialPrompt] = useState<string>("");
+  const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
+  const [collectedInfo, setCollectedInfo] = useState<Record<string, unknown>>({});
+  const [pendingPlan, setPendingPlan] = useState<StudyPlan | null>(null);
+  const [pendingInfo, setPendingInfo] = useState<Record<string, unknown>>({});
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
   // Network State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -213,6 +230,9 @@ export default function Home() {
         const storedTimer = localStorage.getItem(STORAGE_KEY_ACTIVE_TIMER);
         const storedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
         const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+        const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as AppViewMode | null;
+        const storedConv = localStorage.getItem(STORAGE_KEY_CONVERSATION);
+        const storedPending = localStorage.getItem(STORAGE_KEY_PENDING_PLAN);
 
         if (storedPlans) {
           const parsed = JSON.parse(storedPlans) as SavedPlan[];
@@ -245,6 +265,29 @@ export default function Home() {
           setUserSettings(JSON.parse(storedSettings));
         }
 
+        if (storedConv) {
+          try {
+            const parsedConv = JSON.parse(storedConv);
+            setConversationHistory(parsedConv.history || []);
+            setCollectedInfo(parsedConv.collectedInfo || {});
+          } catch {}
+        }
+
+        if (storedPending) {
+          try {
+            const parsedPending = JSON.parse(storedPending);
+            setPendingPlan(parsedPending.plan || null);
+            setPendingInfo(parsedPending.info || {});
+          } catch {}
+        }
+
+        // When opening the website, show the ChatGPT hero landing by default
+        if (storedViewMode === "conversation" || storedViewMode === "preview") {
+          setViewMode(storedViewMode);
+        } else {
+          setViewMode("landing");
+        }
+
         // Default to collapsed rail (logos only) on open
         setSidebarCollapsed(true);
 
@@ -260,6 +303,7 @@ export default function Home() {
         setSavedPlans([normalizedSeed]);
         setActivePlanId(normalizedSeed.id);
         setSessions(generateSeedSessions(DEFAULT_SEED_PLAN.id));
+        setViewMode("landing");
       } finally {
         setMounted(true);
       }
@@ -323,6 +367,37 @@ export default function Home() {
       }
     } catch {}
   }, [activeTimer, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      localStorage.setItem(STORAGE_KEY_VIEW_MODE, viewMode);
+    } catch {}
+  }, [viewMode, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      localStorage.setItem(
+        STORAGE_KEY_CONVERSATION,
+        JSON.stringify({ history: conversationHistory, collectedInfo })
+      );
+    } catch {}
+  }, [conversationHistory, collectedInfo, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      if (pendingPlan) {
+        localStorage.setItem(
+          STORAGE_KEY_PENDING_PLAN,
+          JSON.stringify({ plan: pendingPlan, info: pendingInfo })
+        );
+      } else {
+        localStorage.removeItem(STORAGE_KEY_PENDING_PLAN);
+      }
+    } catch {}
+  }, [pendingPlan, pendingInfo, mounted]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -452,6 +527,59 @@ export default function Home() {
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Start learning from curriculum preview
+  const handleStartLearning = () => {
+    if (!pendingPlan) return;
+    const newSavedPlan: SavedPlan = {
+      ...pendingPlan,
+      id: `plan_${Date.now()}`,
+      createdAt: Date.now(),
+      daily_hours: Number(pendingInfo.daily_hours || 2),
+      experience_level: String(pendingInfo.experience_level || "Beginner"),
+    };
+
+    const normalized = normalizePlanToCurriculum(newSavedPlan);
+    setSavedPlans((prev) => [normalized, ...prev]);
+    setActivePlanId(normalized.id);
+    setSelectedPeriodIndex(null);
+    setPendingPlan(null);
+    setViewMode("dashboard");
+    playChime("complete");
+  };
+
+  // Regenerate alternative plan during preview
+  const handleRegeneratePending = async () => {
+    if (!pendingPlan) return;
+    setIsRegenerating(true);
+    try {
+      const topic = pendingInfo.topic || pendingPlan.subject;
+      const timeframe = pendingInfo.timeframe || pendingPlan.target_timeframe;
+      const dailyHours = Number(pendingInfo.daily_hours || 2);
+      const experience = String(pendingInfo.experience_level || "Intermediate");
+
+      const res = await fetch("http://127.0.0.1:8000/api/generate-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          timeframe,
+          daily_hours: dailyHours,
+          experience_level: experience,
+          goal: "Alternative curriculum variation with practical project emphasis",
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to regenerate plan.");
+      const regenerated: StudyPlan = await res.json();
+      setPendingPlan(regenerated);
+      playChime("complete");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -648,6 +776,61 @@ export default function Home() {
     );
   }
 
+  // 1. Conversational-First Landing View
+  if (viewMode === "landing") {
+    return (
+      <ConversationalLanding
+        onStartConversation={(prompt) => {
+          setInitialPrompt(prompt);
+          setConversationHistory([]);
+          setCollectedInfo({});
+          setViewMode("conversation");
+        }}
+        savedPlans={savedPlans}
+        activePlanId={activePlanId}
+        onContinueLearning={(planId) => {
+          if (planId) setActivePlanId(planId);
+          setViewMode("dashboard");
+        }}
+        completedTasksMap={completedTasksMap}
+      />
+    );
+  }
+
+  // 2. Interactive Study Conversation View
+  if (viewMode === "conversation") {
+    return (
+      <StudyConversation
+        initialPrompt={initialPrompt}
+        conversationHistory={conversationHistory}
+        onUpdateHistory={setConversationHistory}
+        collectedInfo={collectedInfo}
+        onUpdateCollectedInfo={setCollectedInfo}
+        onPlanReady={(plan, info) => {
+          setPendingPlan(plan);
+          setPendingInfo(info);
+          setViewMode("preview");
+        }}
+        onBackToLanding={() => setViewMode("landing")}
+      />
+    );
+  }
+
+  // 3. Curriculum Preview View
+  if (viewMode === "preview" && pendingPlan) {
+    return (
+      <CurriculumPreview
+        plan={pendingPlan}
+        dailyHours={Number(pendingInfo.daily_hours || 2)}
+        timeframe={String(pendingInfo.timeframe || pendingPlan.target_timeframe || "4 Weeks")}
+        onStartLearning={handleStartLearning}
+        onCustomizeRoadmap={() => setViewMode("conversation")}
+        onRegenerate={handleRegeneratePending}
+        isRegenerating={isRegenerating}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] flex selection:bg-emerald-100 selection:text-emerald-900">
       {/* Subtle Ambient Radial Glow */}
@@ -677,6 +860,8 @@ export default function Home() {
           setIsModalOpen(true);
         }}
         onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
+        onOpenConversational={() => setViewMode("landing")}
+        onOpenAssistant={() => setIsAssistantOpen(true)}
         activeTimer={activeTimer}
         completedTasksMap={completedTasksMap}
         activeNavTab={activeNavTab}
@@ -694,6 +879,7 @@ export default function Home() {
             setIsModalOpen(true);
           }}
           onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
+          onOpenAssistant={() => setIsAssistantOpen(true)}
           onExportPDF={handleExportPDF}
           onExportMarkdown={handleExportMarkdown}
           onExportICS={handleExportICS}
@@ -982,6 +1168,14 @@ export default function Home() {
           setIsModalOpen(true);
         }}
         completedTasksMap={completedTasksMap}
+      />
+
+      {/* AI In-Dashboard Learning Assistant Drawer */}
+      <AssistantDrawer
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        activePlan={activePlan}
+        onApplyPlanUpdate={handleUpdatePlan}
       />
     </div>
   );

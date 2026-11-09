@@ -18,6 +18,9 @@ export const STORAGE_KEY_SIDEBAR_COLLAPSED = "study_planner_sidebar_collapsed_v1
 export const STORAGE_KEY_ACTIVE_TIMER = "study_planner_active_timer_v1";
 export const STORAGE_KEY_SESSIONS = "study_planner_sessions_v1";
 export const STORAGE_KEY_SETTINGS = "study_planner_settings_v1";
+export const STORAGE_KEY_VIEW_MODE = "study_planner_view_mode_v1";
+export const STORAGE_KEY_CONVERSATION = "study_planner_conversation_v1";
+export const STORAGE_KEY_PENDING_PLAN = "study_planner_pending_plan_v1";
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   general: {
