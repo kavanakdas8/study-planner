@@ -1,15 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import {
-  StudyPlan,
-  SavedPlan,
-  ActiveTimer,
-  Task,
-  StudySession,
-  UserSettings,
-  OnboardingParams,
-} from "@/types/study";
+import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings } from "@/types/study";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
 import { HeaderKPI } from "@/components/HeaderKPI";
@@ -21,10 +13,6 @@ import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
 import { AnalyticsView } from "@/components/AnalyticsView";
 import { ExportSyncView } from "@/components/ExportSyncView";
 import { SettingsView } from "@/components/SettingsView";
-import { LandingPage } from "@/components/LandingPage";
-import { ChatInterface } from "@/components/ChatInterface";
-import { CurriculumPreview } from "@/components/CurriculumPreview";
-import { DashboardAssistant } from "@/components/DashboardAssistant";
 import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
 import { exportCurriculumToPDF } from "@/lib/pdfGenerator";
 import {
@@ -47,8 +35,6 @@ import {
   AlertTriangle,
   X,
 } from "lucide-react";
-
-type AppViewMode = "landing" | "chat" | "preview" | "dashboard";
 
 const DEFAULT_SEED_PLAN: SavedPlan = {
   id: "plan_seed_enterprise_01",
@@ -180,14 +166,6 @@ const DEFAULT_COMPLETED_SEED: Record<string, boolean> = {
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
-
-  // Top-Level App View State: conversational-first landing flow
-  const [appView, setAppView] = useState<AppViewMode>("landing");
-  const [conversationGoal, setConversationGoal] = useState<string>("");
-  const [previewPlan, setPreviewPlan] = useState<StudyPlan | null>(null);
-  const [previewParams, setPreviewParams] = useState<OnboardingParams>({});
-  const [isRegeneratingPlan, setIsRegeneratingPlan] = useState(false);
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   // App Shell Navigation State: default to collapsed (only logos shown on open)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -429,7 +407,7 @@ export default function Home() {
   const todayPriorityTask = pendingTasksList[0] || null;
   const upcomingTasksSlice = pendingTasksList.slice(1, 5);
 
-  // API Generate Plan Handler (fallback / modal creation)
+  // API Generate Plan Handler
   const handleGeneratePlan = async (payload: {
     topic: string;
     timeframe: string;
@@ -440,7 +418,7 @@ export default function Home() {
     setError("");
 
     try {
-      const res = await fetch("/api/generate-plan", {
+      const res = await fetch("http://127.0.0.1:8000/api/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -468,7 +446,6 @@ export default function Home() {
       setActivePlanId(normalized.id);
       setSelectedPeriodIndex(null);
       setIsModalOpen(false);
-      setAppView("dashboard");
       playChime("complete");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "An unexpected network error occurred.";
@@ -476,70 +453,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Conversational Flow Handlers
-  const handleStartConversation = (goal: string) => {
-    setConversationGoal(goal);
-    setAppView("chat");
-  };
-
-  const handlePlanGeneratedFromChat = (plan: StudyPlan, params: OnboardingParams) => {
-    setPreviewPlan(plan);
-    setPreviewParams(params);
-    setAppView("preview");
-    playChime("complete");
-  };
-
-  const handleStartLearning = (finalPlan: SavedPlan) => {
-    const normalized = normalizePlanToCurriculum(finalPlan);
-    setSavedPlans((prev) => [normalized, ...prev.filter((p) => p.id !== normalized.id)]);
-    setActivePlanId(normalized.id);
-    setSelectedPeriodIndex(null);
-    setAppView("dashboard");
-    playChime("complete");
-  };
-
-  const handleRegeneratePreviewPlan = async (instructions: string) => {
-    if (!previewPlan) return;
-    setIsRegeneratingPlan(true);
-    try {
-      const dailyHours = previewParams.daily_hours || 2;
-      const expLevel = previewParams.experience_level || "Intermediate";
-      const combinedTopic = `${previewPlan.subject}. Adjustment request: ${instructions}. Maintain daily study duration around ${dailyHours} hours.`;
-      const res = await fetch("/api/generate-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic: combinedTopic,
-          timeframe: previewParams.timeframe || previewPlan.target_timeframe || "2 Weeks",
-          daily_hours: dailyHours,
-          experience_level: expLevel,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Regeneration returned error status ${res.status}`);
-      }
-
-      const updatedPlan: StudyPlan = await res.json();
-      setPreviewPlan(updatedPlan);
-      playChime("complete");
-    } catch (err) {
-      console.error("Failed to regenerate plan:", err);
-      throw err;
-    } finally {
-      setIsRegeneratingPlan(false);
-    }
-  };
-
-  // Modify Plan from In-Dashboard AI Assistant
-  const handlePlanModifiedFromAssistant = (updatedPlan: SavedPlan) => {
-    const normalized = normalizePlanToCurriculum(updatedPlan, completedTasksMap);
-    setSavedPlans((prev) =>
-      prev.map((p) => (p.id === normalized.id ? normalized : p))
-    );
-    playChime("complete");
   };
 
   // Toggle single task completion
@@ -601,6 +514,7 @@ export default function Home() {
     setExportFeedback(null);
     playChime("click");
     try {
+      // Small pause to allow the React loading spinner to render
       await new Promise((resolve) => setTimeout(resolve, 80));
       exportCurriculumToPDF(activePlan, completedTasksMap);
       playChime("complete");
@@ -704,7 +618,6 @@ export default function Home() {
     setUserSettings(DEFAULT_USER_SETTINGS);
     setActiveTimer(null);
     setActiveNavTab("dashboard");
-    setAppView("landing");
     playChime("click");
   };
 
@@ -735,52 +648,6 @@ export default function Home() {
     );
   }
 
-  // 1. CONVERSATIONAL LANDING PAGE VIEW
-  if (appView === "landing") {
-    return (
-      <LandingPage
-        savedPlans={savedPlans}
-        activePlan={activePlan}
-        completedTasksMap={completedTasksMap}
-        onSubmitGoal={handleStartConversation}
-        onContinueLearning={() => setAppView("dashboard")}
-        onSelectPlan={(plan) => {
-          setActivePlanId(plan.id);
-          setSelectedPeriodIndex(null);
-          setAppView("dashboard");
-        }}
-      />
-    );
-  }
-
-  // 2. CHAT ONBOARDING INTERFACE VIEW
-  if (appView === "chat") {
-    return (
-      <ChatInterface
-        initialGoal={conversationGoal}
-        onPlanGenerated={handlePlanGeneratedFromChat}
-        onBackToLanding={() => setAppView("landing")}
-        onOpenDashboard={() => setAppView("dashboard")}
-        hasExistingPlans={savedPlans.length > 0}
-      />
-    );
-  }
-
-  // 3. CURRICULUM PREVIEW & CUSTOMIZATION VIEW
-  if (appView === "preview" && previewPlan) {
-    return (
-      <CurriculumPreview
-        plan={previewPlan}
-        params={previewParams}
-        onStartLearning={handleStartLearning}
-        onBackToChat={() => setAppView("chat")}
-        onRegenerate={handleRegeneratePreviewPlan}
-        isRegenerating={isRegeneratingPlan}
-      />
-    );
-  }
-
-  // 4. MAIN WORKSPACE / DASHBOARD VIEW
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] flex selection:bg-emerald-100 selection:text-emerald-900">
       {/* Subtle Ambient Radial Glow */}
@@ -814,7 +681,6 @@ export default function Home() {
         completedTasksMap={completedTasksMap}
         activeNavTab={activeNavTab}
         onSelectNavTab={setActiveNavTab}
-        onOpenConversationalPlanner={() => setAppView("landing")}
       />
 
       {/* Main Content Workspace Shell */}
@@ -835,9 +701,6 @@ export default function Home() {
           onFocusSearch={() => searchInputRef.current?.focus()}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onToggleAssistant={() => setIsAssistantOpen((prev) => !prev)}
-          isAssistantOpen={isAssistantOpen}
-          onOpenConversationalPlanner={() => setAppView("landing")}
         />
 
         {/* Dynamic Section Translation */}
@@ -947,149 +810,142 @@ export default function Home() {
 
               {/* Today's Focus Schedule */}
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-                    Today&apos;s Focus Schedule
-                  </h2>
-                </div>
-
-                {todayPriorityTask ? (
-                  <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 block">
-                          Next In Queue • {todayPriorityTask.periodLabel}
-                        </span>
-                        <h3 className="text-sm font-bold text-slate-900 leading-snug">
-                          {todayPriorityTask.task.title}
-                        </h3>
-                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
-                          {todayPriorityTask.task.description}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleStartFocus(
-                            todayPriorityTask.task,
-                            todayPriorityTask.taskId,
-                            todayPriorityTask.periodLabel
-                          )
-                        }
-                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
-                      >
-                        <Play className="w-3 h-3 fill-current" />
-                        <span>Start Focus</span>
-                      </button>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                        Today&apos;s Focus Schedule
+                      </h2>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
-                      <span className="inline-flex items-center gap-1 font-mono text-[11px]">
-                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                        {todayPriorityTask.task.duration_minutes} minutes
-                      </span>
-                      <span>•</span>
-                      <span className="text-[11px] font-medium">
-                        {todayPriorityTask.task.resource_type}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleTask(todayPriorityTask.taskId)}
-                        className="ml-auto text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 cursor-pointer"
-                      >
-                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>Mark Done</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-6 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
-                    All scheduled tasks for this curriculum are complete!
-                  </div>
-                )}
-
-                {/* Upcoming Tasks Section */}
-                {upcomingTasksSlice.length > 0 && (
-                  <div className="space-y-2 pt-1">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                      <span>Upcoming In Roadmap</span>
-                      <span className="text-[11px] text-slate-400 font-normal">
-                        {pendingTasksList.length} total pending
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      {upcomingTasksSlice.map((item) => (
-                        <div
-                          key={item.taskId}
-                          className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/70 border border-slate-200 flex items-center justify-between gap-3 text-xs transition"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleTask(item.taskId)}
-                              className="w-4 h-4 rounded border border-slate-300 hover:border-emerald-500 bg-white flex items-center justify-center transition cursor-pointer shrink-0"
-                            >
-                              <span className="sr-only">Complete task</span>
-                            </button>
-                            <div className="min-w-0">
-                              <span className="font-semibold text-slate-900 truncate block">
-                                {item.task.title}
-                              </span>
-                              <span className="text-[10px] text-slate-400 truncate block">
-                                {item.periodLabel}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="font-mono text-[10px] text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
-                              {item.task.duration_minutes}m
+                    {todayPriorityTask ? (
+                      <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 block">
+                              Next In Queue • {todayPriorityTask.periodLabel}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleStartFocus(
-                                  item.task,
-                                  item.taskId,
-                                  item.periodLabel
-                                )
-                              }
-                              className="p-1 text-slate-400 hover:text-emerald-700 rounded transition cursor-pointer"
-                              title="Start focus"
-                            >
-                              <Play className="w-3.5 h-3.5" />
-                            </button>
+                            <h3 className="text-sm font-bold text-slate-900 leading-snug">
+                              {todayPriorityTask.task.title}
+                            </h3>
+                            <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                              {todayPriorityTask.task.description}
+                            </p>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleStartFocus(
+                                todayPriorityTask.task,
+                                todayPriorityTask.taskId,
+                                todayPriorityTask.periodLabel
+                              )
+                            }
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            <span>Start Focus</span>
+                          </button>
                         </div>
-                      ))}
-                    </div>
+
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                          <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                            <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                            {todayPriorityTask.task.duration_minutes} minutes
+                          </span>
+                          <span>•</span>
+                          <span className="text-[11px] font-medium">
+                            {todayPriorityTask.task.resource_type}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleTask(todayPriorityTask.taskId)}
+                            className="ml-auto text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Mark Done</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
+                        All scheduled tasks for this curriculum are complete!
+                      </div>
+                    )}
+
+                    {/* Upcoming Tasks Section */}
+                    {upcomingTasksSlice.length > 0 && (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                          <span>Upcoming In Roadmap</span>
+                          <span className="text-[11px] text-slate-400 font-normal">
+                            {pendingTasksList.length} total pending
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {upcomingTasksSlice.map((item) => (
+                            <div
+                              key={item.taskId}
+                              className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/70 border border-slate-200 flex items-center justify-between gap-3 text-xs transition"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleTask(item.taskId)}
+                                  className="w-4 h-4 rounded border border-slate-300 hover:border-emerald-500 bg-white flex items-center justify-center transition cursor-pointer shrink-0"
+                                >
+                                  <span className="sr-only">Complete task</span>
+                                </button>
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-slate-900 truncate block">
+                                    {item.task.title}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 truncate block">
+                                    {item.periodLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="font-mono text-[10px] text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                                  {item.task.duration_minutes}m
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleStartFocus(
+                                      item.task,
+                                      item.taskId,
+                                      item.periodLabel
+                                    )
+                                  }
+                                  className="p-1 text-slate-400 hover:text-emerald-700 rounded transition cursor-pointer"
+                                  title="Start focus"
+                                >
+                                  <Play className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
             </div>
           ) : (
             /* Empty State Hero */
             <EmptyStateHero
-              onOpenModal={() => setAppView("landing")}
+              onOpenModal={() => {
+                setError("");
+                setIsModalOpen(true);
+              }}
               onGeneratePreset={(preset) => {
-                setConversationGoal(preset.topic);
-                setAppView("chat");
+                setIsModalOpen(true);
+                handleGeneratePlan(preset);
               }}
             />
           )}
         </main>
       </div>
-
-      {/* In-Dashboard AI Learning Assistant Companion */}
-      <DashboardAssistant
-        isOpen={isAssistantOpen}
-        onClose={() => setIsAssistantOpen(false)}
-        activePlan={activePlan}
-        completedTasksMap={completedTasksMap}
-        activeTimerTaskId={activeTimer ? activeTimer.taskId : null}
-        onPlanModified={handlePlanModifiedFromAssistant}
-      />
 
       {/* Floating Focus Timer Companion */}
       <FocusTimer

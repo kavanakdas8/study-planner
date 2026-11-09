@@ -14,7 +14,6 @@ import {
 export const STORAGE_KEY_PLANS = "study_planner_saved_plans_v1";
 export const STORAGE_KEY_ACTIVE_ID = "study_planner_active_plan_id_v1";
 export const STORAGE_KEY_PROGRESS = "study_planner_completed_tasks_v1";
-export const STORAGE_KEY_VIEW_MODE = "study_planner_view_mode_v1";
 export const STORAGE_KEY_SIDEBAR_COLLAPSED = "study_planner_sidebar_collapsed_v1";
 export const STORAGE_KEY_ACTIVE_TIMER = "study_planner_active_timer_v1";
 export const STORAGE_KEY_SESSIONS = "study_planner_sessions_v1";

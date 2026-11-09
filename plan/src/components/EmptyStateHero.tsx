@@ -8,7 +8,6 @@ import {
   Cpu,
   BrainCircuit,
   Compass,
-  Sparkles,
 } from "lucide-react";
 
 interface EmptyStateHeroProps {
@@ -60,6 +59,11 @@ export function EmptyStateHero({
   onOpenModal,
   onGeneratePreset,
 }: EmptyStateHeroProps) {
+  const scrollToPresets = () => {
+    const el = document.getElementById("quick-starts");
+    el?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="py-8 sm:py-14 space-y-12 max-w-4xl mx-auto">
       {/* Hero Header */}
@@ -70,23 +74,33 @@ export function EmptyStateHero({
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
-          Your learning journey starts here.
+          Plan Smarter. Learn Better. <br className="hidden sm:inline" />
+          <span className="text-emerald-600">
+            High-velocity study roadmaps.
+          </span>
         </h1>
 
         <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          Create your first learning roadmap and turn your goals into achievable milestones.
+          Deconstruct complex topics into structured milestones, practice with time-boxed daily sprints, and track real progress in an enterprise workspace.
         </p>
 
         {/* Action CTAs */}
-        <div className="pt-2 flex justify-center items-center gap-3">
+        <div className="pt-2 flex flex-col sm:flex-row justify-center items-center gap-3">
           <button
             type="button"
             onClick={onOpenModal}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition hover:scale-[1.01] cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition hover:scale-[1.01] cursor-pointer"
           >
-            <Sparkles className="w-4 h-4 text-emerald-200" />
-            <span>Create a Learning Plan</span>
+            <span>Create Custom Plan</span>
             <ArrowRight className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={scrollToPresets}
+            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-medium text-xs sm:text-sm transition cursor-pointer shadow-2xs"
+          >
+            Explore Curriculum Templates
           </button>
         </div>
       </div>
@@ -114,7 +128,7 @@ export function EmptyStateHero({
                     experience_level: card.experience_level,
                   })
                 }
-                className="group p-4.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between"
+                className="group p-4.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">

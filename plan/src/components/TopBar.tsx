@@ -8,8 +8,6 @@ import {
   MoreVertical,
   Bell,
   ChevronRight,
-  Sparkles,
-  Compass,
 } from "lucide-react";
 import { SavedPlan } from "@/types/study";
 
@@ -25,9 +23,6 @@ interface TopBarProps {
   onFocusSearch: () => void;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
-  onToggleAssistant?: () => void;
-  isAssistantOpen?: boolean;
-  onOpenConversationalPlanner?: () => void;
 }
 
 export function TopBar({
@@ -37,9 +32,6 @@ export function TopBar({
   onFocusSearch,
   searchQuery = "",
   onSearchChange,
-  onToggleAssistant,
-  isAssistantOpen = false,
-  onOpenConversationalPlanner,
 }: TopBarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -111,37 +103,8 @@ export function TopBar({
         </div>
       </div>
 
-      {/* Right Actions: AI Assistant + Notification Bell + Secondary Menu */}
+      {/* Right Actions: Notification Bell + Primary Emerald CTA + Secondary Menu */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Return to Conversational Planner */}
-        {onOpenConversationalPlanner && (
-          <button
-            type="button"
-            onClick={onOpenConversationalPlanner}
-            title="Start new learning goal"
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 text-slate-700 text-xs font-medium transition cursor-pointer shadow-2xs"
-          >
-            <Compass className="w-3.5 h-3.5 text-emerald-600" />
-            <span>AI Planner</span>
-          </button>
-        )}
-
-        {/* In-Dashboard AI Assistant Button */}
-        {onToggleAssistant && (
-          <button
-            type="button"
-            onClick={onToggleAssistant}
-            title="Ask AI Assistant"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer shadow-2xs ${
-              isAssistantOpen
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">AI Tutor</span>
-          </button>
-        )}
         {/* Notification Bell */}
         <div className="relative" ref={notifRef}>
           <button

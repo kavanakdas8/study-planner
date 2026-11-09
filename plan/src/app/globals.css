@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  --font-fraunces: 'Fraunces', Georgia, serif;
   /* CuratePlan Emerald Light Design System Tokens */
   --background: #f8fafc;
   --surface: #ffffff;
