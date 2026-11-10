@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Loader2, ArrowRight, AlertCircle, Compass } from "lucide-react";
+import { X, Loader2, ArrowRight, AlertCircle } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface CreationModalProps {
   isOpen: boolean;
@@ -135,9 +136,7 @@ export function CreationModal({
         {/* Header Bar */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-              <Compass className="w-4 h-4 stroke-[2.2]" />
-            </div>
+            <BrandLogo className="w-9 h-6" />
             <div>
               <h2 id="modal-title" className="text-base font-bold text-slate-900 tracking-tight">
                 Curriculum Planner

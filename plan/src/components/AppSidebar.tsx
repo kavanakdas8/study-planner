@@ -15,9 +15,9 @@ import {
   Trash2,
   X,
   CheckCircle2,
-  Compass,
 } from "lucide-react";
 import { SavedPlan, ActiveTimer } from "@/types/study";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -107,10 +107,8 @@ export function AppSidebar({
           }`}
           title="Return to Home"
         >
-          {/* Emerald Brand Logo */}
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs group-hover:border-emerald-300 transition">
-            <Compass className="w-4 h-4 text-emerald-600 stroke-[2.2]" />
-          </div>
+          {/* Brand Logo */}
+          <BrandLogo className="w-9 h-6" />
 
           {isExpanded && (
             <div className="flex flex-col min-w-0">

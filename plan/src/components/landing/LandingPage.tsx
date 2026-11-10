@@ -2,13 +2,9 @@
 
 import React from "react";
 import {
-  Map,
-  Clock,
-  BarChart3,
-  FileText,
-  Compass,
   CheckCircle2,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { OnboardingSelection } from "@/types/study";
 import { LandingNavbar } from "./LandingNavbar";
 import { LandingHero } from "./LandingHero";
@@ -28,25 +24,21 @@ const FEATURES = [
     title: "Structured Learning Roadmaps",
     description:
       "Organize complex subjects into clear modules, topics, and sequential milestones with prerequisite tracking.",
-    icon: Map,
   },
   {
     title: "Integrated Focus Timer",
     description:
       "Built-in Pomodoro and deep work timer sessions linked directly to your active curriculum tasks.",
-    icon: Clock,
   },
   {
     title: "Actionable Progress Analytics",
     description:
       "Track daily study consistency, time distribution across modules, and completion velocity in real time.",
-    icon: BarChart3,
   },
   {
     title: "Multi-Format Export & Sync",
     description:
       "Export your roadmap to formatted PDF reports, Markdown checklists, or ICS calendar schedules.",
-    icon: FileText,
   },
 ];
 
@@ -98,38 +90,26 @@ export function LandingPage({
           className="py-16 sm:py-20 bg-white border-b border-[#E2E8F0]"
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl space-y-2 mb-12">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#059669]">
-                Platform Capabilities
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
+            <div className="max-w-2xl mb-10">
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                 Everything you need to stay consistent
               </h2>
-              <p className="text-sm sm:text-base text-[#475569]">
-                Designed for learners who want structure, clarity, and measurable momentum.
-              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {FEATURES.map((feature) => {
-                const Icon = feature.icon;
-                return (
-                  <div
-                    key={feature.title}
-                    className="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3 hover:border-[#CBD5E1] transition"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-[#ECFDF5] border border-[#D1FAE5] flex items-center justify-center text-[#059669]">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-base font-bold text-[#0F172A]">
-                      {feature.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-[#475569] leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </div>
-                );
-              })}
+              {FEATURES.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5 hover:border-[#CBD5E1] transition"
+                >
+                  <h3 className="text-base font-bold text-[#0F172A]">
+                    {feature.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#475569] leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -141,7 +121,7 @@ export function LandingPage({
               <span className="text-xs font-bold uppercase tracking-wider text-[#059669]">
                 Simple Workflow
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                 From ambition to structured execution
               </h2>
             </div>
@@ -179,8 +159,8 @@ export function LandingPage({
           className="py-16 bg-white border-t border-[#E2E8F0]"
         >
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#ECFDF5] border border-[#D1FAE5] text-[#059669] mx-auto">
-              <Compass className="w-5 h-5" />
+            <div className="inline-flex items-center justify-center mx-auto">
+              <BrandLogo className="w-12 h-8" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A]">
               Built for focused, self-directed learners
@@ -208,7 +188,7 @@ export function LandingPage({
       <footer className="bg-[#F8FAFC] border-t border-[#E2E8F0] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#475569]">
           <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-[#059669]" />
+            <BrandLogo className="w-7 h-5" />
             <span className="font-bold text-[#0F172A]">CuratePlan</span>
             <span className="text-[#94A3B8]">· Plan Smarter. Learn Better.</span>
           </div>

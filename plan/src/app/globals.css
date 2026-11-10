@@ -19,6 +19,8 @@
   --warning: #d97706;
   --danger: #dc2626;
 
+  --font-display: "Plus Jakarta Sans", "Manrope", "Inter", system-ui, -apple-system, sans-serif;
+
   /* Legacy mapping aliases */
   --foreground: #0f172a;
   --surface-card: #ffffff;
@@ -26,6 +28,10 @@
   --brand-orange: #059669;
   --brand-orange-hover: #047857;
   --brand-orange-glow: rgba(5, 150, 105, 0.12);
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 body {

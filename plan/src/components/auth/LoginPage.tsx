@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import {
-  Compass,
   Eye,
   EyeOff,
   ArrowLeft,
@@ -12,6 +11,7 @@ import {
   Calendar,
   Layers,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface LoginPageProps {
   onBackToLanding: () => void;
@@ -71,9 +71,7 @@ export function LoginPage({
             onClick={onBackToLanding}
             className="flex items-center gap-2.5 group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-xl bg-[#ECFDF5] border border-[#D1FAE5] flex items-center justify-center text-[#059669]">
-              <Compass className="w-5 h-5 stroke-[2.2]" />
-            </div>
+            <BrandLogo className="w-10 h-7" />
             <span className="text-base font-bold text-[#0F172A] tracking-tight group-hover:text-[#059669] transition">
               CuratePlan
             </span>

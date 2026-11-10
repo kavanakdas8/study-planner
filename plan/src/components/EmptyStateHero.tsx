@@ -7,8 +7,8 @@ import {
   Container,
   Cpu,
   BrainCircuit,
-  Compass,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface EmptyStateHeroProps {
   onOpenModal: () => void;
@@ -69,7 +69,7 @@ export function EmptyStateHero({
       {/* Hero Header */}
       <div className="text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-          <Compass className="w-3.5 h-3.5 text-emerald-600 stroke-[2.2]" />
+          <BrandLogo className="w-5 h-3.5" />
           <span>CuratePlan Curriculum Architect</span>
         </div>
 
