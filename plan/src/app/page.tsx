@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings, AppViewMode, ChatMessage } from "@/types/study";
+import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings, AppViewMode, OnboardingSelection } from "@/types/study";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
 import { HeaderKPI } from "@/components/HeaderKPI";
@@ -13,10 +13,9 @@ import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
 import { AnalyticsView } from "@/components/AnalyticsView";
 import { ExportSyncView } from "@/components/ExportSyncView";
 import { SettingsView } from "@/components/SettingsView";
-import { ConversationalLanding } from "@/components/ConversationalLanding";
-import { StudyConversation } from "@/components/StudyConversation";
-import { CurriculumPreview } from "@/components/CurriculumPreview";
-import { AssistantDrawer } from "@/components/AssistantDrawer";
+import { LandingPage } from "@/components/landing/LandingPage";
+import { LoginPage } from "@/components/auth/LoginPage";
+import { SignupPage } from "@/components/auth/SignupPage";
 import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
 import { exportCurriculumToPDF } from "@/lib/pdfGenerator";
 import {
@@ -28,8 +27,7 @@ import {
   STORAGE_KEY_SESSIONS,
   STORAGE_KEY_SETTINGS,
   STORAGE_KEY_VIEW_MODE,
-  STORAGE_KEY_CONVERSATION,
-  STORAGE_KEY_PENDING_PLAN,
+  STORAGE_KEY_ONBOARDING,
   DEFAULT_USER_SETTINGS,
   normalizePlanToCurriculum,
   generateSeedSessions,
@@ -197,15 +195,9 @@ export default function Home() {
   // Focus Timer State
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
 
-  // Conversational-First Flow State
+  // Landing & Onboarding Flow State
   const [viewMode, setViewMode] = useState<AppViewMode>("landing");
-  const [initialPrompt, setInitialPrompt] = useState<string>("");
-  const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
-  const [collectedInfo, setCollectedInfo] = useState<Record<string, unknown>>({});
-  const [pendingPlan, setPendingPlan] = useState<StudyPlan | null>(null);
-  const [pendingInfo, setPendingInfo] = useState<Record<string, unknown>>({});
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [onboardingSelection, setOnboardingSelection] = useState<OnboardingSelection | null>(null);
 
   // Network State
   const [loading, setLoading] = useState(false);
@@ -230,9 +222,8 @@ export default function Home() {
         const storedTimer = localStorage.getItem(STORAGE_KEY_ACTIVE_TIMER);
         const storedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
         const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
-        const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as AppViewMode | null;
-        const storedConv = localStorage.getItem(STORAGE_KEY_CONVERSATION);
-        const storedPending = localStorage.getItem(STORAGE_KEY_PENDING_PLAN);
+        const storedOnboarding = localStorage.getItem(STORAGE_KEY_ONBOARDING);
+        const sessionViewMode = sessionStorage.getItem(STORAGE_KEY_VIEW_MODE) as AppViewMode | null;
 
         if (storedPlans) {
           const parsed = JSON.parse(storedPlans) as SavedPlan[];
@@ -265,25 +256,15 @@ export default function Home() {
           setUserSettings(JSON.parse(storedSettings));
         }
 
-        if (storedConv) {
+        if (storedOnboarding) {
           try {
-            const parsedConv = JSON.parse(storedConv);
-            setConversationHistory(parsedConv.history || []);
-            setCollectedInfo(parsedConv.collectedInfo || {});
+            setOnboardingSelection(JSON.parse(storedOnboarding));
           } catch {}
         }
 
-        if (storedPending) {
-          try {
-            const parsedPending = JSON.parse(storedPending);
-            setPendingPlan(parsedPending.plan || null);
-            setPendingInfo(parsedPending.info || {});
-          } catch {}
-        }
-
-        // When opening the website, show the ChatGPT hero landing by default
-        if (storedViewMode === "conversation" || storedViewMode === "preview") {
-          setViewMode(storedViewMode);
+        // Preserve tab refresh view state within the current session; new visits start on landing
+        if (sessionViewMode && ["landing", "login", "signup", "dashboard"].includes(sessionViewMode)) {
+          setViewMode(sessionViewMode);
         } else {
           setViewMode("landing");
         }
@@ -371,33 +352,20 @@ export default function Home() {
   useEffect(() => {
     if (!mounted) return;
     try {
-      localStorage.setItem(STORAGE_KEY_VIEW_MODE, viewMode);
+      sessionStorage.setItem(STORAGE_KEY_VIEW_MODE, viewMode);
     } catch {}
   }, [viewMode, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
     try {
-      localStorage.setItem(
-        STORAGE_KEY_CONVERSATION,
-        JSON.stringify({ history: conversationHistory, collectedInfo })
-      );
-    } catch {}
-  }, [conversationHistory, collectedInfo, mounted]);
-
-  useEffect(() => {
-    if (!mounted) return;
-    try {
-      if (pendingPlan) {
-        localStorage.setItem(
-          STORAGE_KEY_PENDING_PLAN,
-          JSON.stringify({ plan: pendingPlan, info: pendingInfo })
-        );
+      if (onboardingSelection) {
+        localStorage.setItem(STORAGE_KEY_ONBOARDING, JSON.stringify(onboardingSelection));
       } else {
-        localStorage.removeItem(STORAGE_KEY_PENDING_PLAN);
+        localStorage.removeItem(STORAGE_KEY_ONBOARDING);
       }
     } catch {}
-  }, [pendingPlan, pendingInfo, mounted]);
+  }, [onboardingSelection, mounted]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -530,57 +498,12 @@ export default function Home() {
     }
   };
 
-  // Start learning from curriculum preview
-  const handleStartLearning = () => {
-    if (!pendingPlan) return;
-    const newSavedPlan: SavedPlan = {
-      ...pendingPlan,
-      id: `plan_${Date.now()}`,
-      createdAt: Date.now(),
-      daily_hours: Number(pendingInfo.daily_hours || 2),
-      experience_level: String(pendingInfo.experience_level || "Beginner"),
-    };
-
-    const normalized = normalizePlanToCurriculum(newSavedPlan);
-    setSavedPlans((prev) => [normalized, ...prev]);
-    setActivePlanId(normalized.id);
-    setSelectedPeriodIndex(null);
-    setPendingPlan(null);
+  // Confirm onboarding selection & transition into the existing CuratePlan dashboard
+  const handleOnboardingStartLearning = (selection: OnboardingSelection) => {
+    setOnboardingSelection(selection);
+    setActiveNavTab("dashboard");
     setViewMode("dashboard");
     playChime("complete");
-  };
-
-  // Regenerate alternative plan during preview
-  const handleRegeneratePending = async () => {
-    if (!pendingPlan) return;
-    setIsRegenerating(true);
-    try {
-      const topic = pendingInfo.topic || pendingPlan.subject;
-      const timeframe = pendingInfo.timeframe || pendingPlan.target_timeframe;
-      const dailyHours = Number(pendingInfo.daily_hours || 2);
-      const experience = String(pendingInfo.experience_level || "Intermediate");
-
-      const res = await fetch("http://127.0.0.1:8000/api/generate-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic,
-          timeframe,
-          daily_hours: dailyHours,
-          experience_level: experience,
-          goal: "Alternative curriculum variation with practical project emphasis",
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to regenerate plan.");
-      const regenerated: StudyPlan = await res.json();
-      setPendingPlan(regenerated);
-      playChime("complete");
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsRegenerating(false);
-    }
   };
 
   // Toggle single task completion
@@ -776,57 +699,36 @@ export default function Home() {
     );
   }
 
-  // 1. Conversational-First Landing View
+  // 1. Premium EdTech Landing Page & Course Selection Flow
   if (viewMode === "landing") {
     return (
-      <ConversationalLanding
-        onStartConversation={(prompt) => {
-          setInitialPrompt(prompt);
-          setConversationHistory([]);
-          setCollectedInfo({});
-          setViewMode("conversation");
-        }}
-        savedPlans={savedPlans}
-        activePlanId={activePlanId}
-        onContinueLearning={(planId) => {
-          if (planId) setActivePlanId(planId);
-          setViewMode("dashboard");
-        }}
-        completedTasksMap={completedTasksMap}
+      <LandingPage
+        onStartLearning={handleOnboardingStartLearning}
+        onNavigateLogin={() => setViewMode("login")}
+        onNavigateSignup={() => setViewMode("signup")}
+        onOpenDashboard={() => setViewMode("dashboard")}
+        hasExistingWorkspace={savedPlans.length > 0}
+        initialSelection={onboardingSelection}
       />
     );
   }
 
-  // 2. Interactive Study Conversation View
-  if (viewMode === "conversation") {
+  // 2. UI-Only Login Page
+  if (viewMode === "login") {
     return (
-      <StudyConversation
-        initialPrompt={initialPrompt}
-        conversationHistory={conversationHistory}
-        onUpdateHistory={setConversationHistory}
-        collectedInfo={collectedInfo}
-        onUpdateCollectedInfo={setCollectedInfo}
-        onPlanReady={(plan, info) => {
-          setPendingPlan(plan);
-          setPendingInfo(info);
-          setViewMode("preview");
-        }}
+      <LoginPage
         onBackToLanding={() => setViewMode("landing")}
+        onNavigateSignup={() => setViewMode("signup")}
       />
     );
   }
 
-  // 3. Curriculum Preview View
-  if (viewMode === "preview" && pendingPlan) {
+  // 3. UI-Only Sign Up Page
+  if (viewMode === "signup") {
     return (
-      <CurriculumPreview
-        plan={pendingPlan}
-        dailyHours={Number(pendingInfo.daily_hours || 2)}
-        timeframe={String(pendingInfo.timeframe || pendingPlan.target_timeframe || "4 Weeks")}
-        onStartLearning={handleStartLearning}
-        onCustomizeRoadmap={() => setViewMode("conversation")}
-        onRegenerate={handleRegeneratePending}
-        isRegenerating={isRegenerating}
+      <SignupPage
+        onBackToLanding={() => setViewMode("landing")}
+        onNavigateLogin={() => setViewMode("login")}
       />
     );
   }
@@ -860,8 +762,7 @@ export default function Home() {
           setIsModalOpen(true);
         }}
         onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
-        onOpenConversational={() => setViewMode("landing")}
-        onOpenAssistant={() => setIsAssistantOpen(true)}
+        onReturnHome={() => setViewMode("landing")}
         activeTimer={activeTimer}
         completedTasksMap={completedTasksMap}
         activeNavTab={activeNavTab}
@@ -879,7 +780,6 @@ export default function Home() {
             setIsModalOpen(true);
           }}
           onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
-          onOpenAssistant={() => setIsAssistantOpen(true)}
           onExportPDF={handleExportPDF}
           onExportMarkdown={handleExportMarkdown}
           onExportICS={handleExportICS}
@@ -943,6 +843,38 @@ export default function Home() {
           ) : activePlan ? (
             /* DEFAULT: DASHBOARD VIEW */
             <div className="space-y-6">
+              {/* Onboarding Context Banner (if user transitioned from onboarding) */}
+              {onboardingSelection && (
+                <div className="p-3.5 rounded-xl bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950 flex flex-wrap items-center justify-between gap-3 shadow-2xs animate-fade-in">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-emerald-800">Selected Goal:</span>
+                    <span className="font-semibold">{onboardingSelection.subject}</span>
+                    <span className="text-emerald-300">•</span>
+                    <span>{onboardingSelection.dailyLabel} / day</span>
+                    <span className="text-emerald-300">•</span>
+                    <span>{onboardingSelection.durationLabel}</span>
+                    {onboardingSelection.level && (
+                      <>
+                        <span className="text-emerald-300">•</span>
+                        <span>{onboardingSelection.level}</span>
+                      </>
+                    )}
+                    <span className="text-emerald-300">•</span>
+                    <span className="font-mono text-emerald-700 font-semibold">
+                      {onboardingSelection.totalEstimatedHours}h total
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingSelection(null)}
+                    className="text-emerald-600 hover:text-emerald-900 p-1 cursor-pointer"
+                    title="Dismiss summary"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {/* PDF Export Feedback Alert */}
               {exportFeedback && (
                 <div
@@ -1168,14 +1100,6 @@ export default function Home() {
           setIsModalOpen(true);
         }}
         completedTasksMap={completedTasksMap}
-      />
-
-      {/* AI In-Dashboard Learning Assistant Drawer */}
-      <AssistantDrawer
-        isOpen={isAssistantOpen}
-        onClose={() => setIsAssistantOpen(false)}
-        activePlan={activePlan}
-        onApplyPlanUpdate={handleUpdatePlan}
       />
     </div>
   );

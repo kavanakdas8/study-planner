@@ -16,7 +16,6 @@ import {
   X,
   CheckCircle2,
   Compass,
-  Sparkles,
 } from "lucide-react";
 import { SavedPlan, ActiveTimer } from "@/types/study";
 
@@ -31,8 +30,7 @@ interface AppSidebarProps {
   onDeletePlan: (planId: string) => void;
   onOpenCreateModal: () => void;
   onOpenHistoryModal: () => void;
-  onOpenConversational?: () => void;
-  onOpenAssistant?: () => void;
+  onReturnHome?: () => void;
   activeTimer: ActiveTimer | null;
   completedTasksMap: Record<string, boolean>;
   activeNavTab?: string;
@@ -50,8 +48,7 @@ export function AppSidebar({
   onDeletePlan,
   onOpenCreateModal,
   onOpenHistoryModal,
-  onOpenConversational,
-  onOpenAssistant,
+  onReturnHome,
   activeTimer,
   completedTasksMap,
   activeNavTab = "dashboard",
@@ -78,11 +75,6 @@ export function AppSidebar({
   const shortcutKey = isMac ? "⌘K" : "Ctrl+K";
 
   const handleNavClick = (tabId: string) => {
-    if (tabId === "assistant" && onOpenAssistant) {
-      onOpenAssistant();
-      onCloseMobile();
-      return;
-    }
     if (onSelectNavTab) {
       onSelectNavTab(tabId);
     }
@@ -96,7 +88,6 @@ export function AppSidebar({
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "curriculum", label: "Curriculum Roadmap", icon: MapPin },
     { id: "analytics", label: "Analytics & Progress", icon: BarChart3 },
-    { id: "assistant", label: "AI Study Assistant", icon: Sparkles },
     { id: "history", label: "Study History", icon: History },
   ];
 
@@ -110,9 +101,9 @@ export function AppSidebar({
       {/* Brand & Workspace Header */}
       <div className="h-15 px-4 flex items-center justify-between border-b border-slate-200 shrink-0">
         <div
-          onClick={onOpenConversational}
+          onClick={onReturnHome}
           className={`flex items-center gap-2.5 overflow-hidden ${
-            onOpenConversational ? "cursor-pointer group hover:opacity-90 transition" : ""
+            onReturnHome ? "cursor-pointer group hover:opacity-90 transition" : ""
           }`}
           title="Return to Home"
         >
@@ -158,11 +149,7 @@ export function AppSidebar({
         <button
           type="button"
           onClick={() => {
-            if (onOpenConversational) {
-              onOpenConversational();
-            } else {
-              onOpenCreateModal();
-            }
+            onOpenCreateModal();
             onCloseMobile();
           }}
           title={`Create Plan (${shortcutKey})`}
