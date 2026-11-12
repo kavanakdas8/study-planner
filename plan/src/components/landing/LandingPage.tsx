@@ -80,10 +80,10 @@ export function LandingPage({
         {/* Features Section */}
         <section
           id="features"
-          className="py-16 sm:py-20 bg-white border-b border-[#E2E8F0]"
+          className="py-16 sm:py-20 bg-transparent border-b border-[#E2E8F0]"
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mb-10">
+            <div className="max-w-2xl mx-auto text-center mb-10 sm:mb-12">
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                 Everything you need to stay consistent
               </h2>
@@ -93,7 +93,7 @@ export function LandingPage({
               {FEATURES.map((feature) => (
                 <div
                   key={feature.title}
-                  className="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5 hover:border-[#CBD5E1] transition"
+                  className="p-6 rounded-2xl bg-transparent border border-[#E2E8F0] space-y-2.5 hover:border-[#CBD5E1] transition text-center"
                 >
                   <h3 className="text-base font-bold text-[#0F172A]">
                     {feature.title}
@@ -143,7 +143,7 @@ export function LandingPage({
         {/* About Section */}
         <section
           id="about"
-          className="py-16 bg-white border-t border-[#E2E8F0]"
+          className="py-16 bg-transparent border-t border-[#E2E8F0]"
         >
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
             <div className="inline-flex items-center justify-center mx-auto">
