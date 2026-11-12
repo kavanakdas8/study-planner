@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { BookOpen, Clock, Calendar, GraduationCap } from "lucide-react";
+import { ArrowRight, AlertCircle } from "lucide-react";
 import { DifficultyLevel, OnboardingSelection } from "@/types/study";
 import { SelectionCard } from "./SelectionCard";
-import { LearningSummary } from "./LearningSummary";
 
 interface CourseSelectionProps {
   onStartLearning: (selection: OnboardingSelection) => void;
@@ -148,23 +147,16 @@ export function CourseSelection({
           </p>
         </div>
 
-        {/* Two-Column Builder + Summary Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-          {/* Left Column: Course Configuration Form */}
-          <div className="lg:col-span-7 space-y-8">
-            {/* Step 1: Subject / Course */}
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#ECFDF5] border border-[#D1FAE5] flex items-center justify-center text-[#059669] shrink-0">
-                  <BookOpen className="w-4 h-4" />
-                </div>
-                <label
-                  htmlFor="subject-input"
-                  className="text-base font-bold text-[#0F172A]"
-                >
-                  What would you like to learn?
-                </label>
-              </div>
+        {/* Centered Course Configuration Form */}
+        <div className="max-w-3xl mx-auto space-y-8">
+          {/* Step 1: Subject / Course */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
+            <label
+              htmlFor="subject-input"
+              className="text-base font-bold text-[#0F172A] block"
+            >
+              What would you like to learn?
+            </label>
 
               <input
                 id="subject-input"
@@ -209,16 +201,11 @@ export function CourseSelection({
               </div>
             </div>
 
-            {/* Step 2: Daily Study Time */}
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#ECFDF5] border border-[#D1FAE5] flex items-center justify-center text-[#059669] shrink-0">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <h3 className="text-base font-bold text-[#0F172A]">
-                  How much time can you dedicate daily?
-                </h3>
-              </div>
+          {/* Step 2: Daily Study Time */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
+            <h3 className="text-base font-bold text-[#0F172A]">
+              How much time can you dedicate daily?
+            </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {DAILY_TIME_OPTIONS.map((option) => (
@@ -281,16 +268,11 @@ export function CourseSelection({
               )}
             </div>
 
-            {/* Step 3: Total Course Duration */}
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#ECFDF5] border border-[#D1FAE5] flex items-center justify-center text-[#059669] shrink-0">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <h3 className="text-base font-bold text-[#0F172A]">
-                  How long do you want to study?
-                </h3>
-              </div>
+          {/* Step 3: Total Course Duration */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
+            <h3 className="text-base font-bold text-[#0F172A]">
+              How long do you want to study?
+            </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {DURATION_OPTIONS.map((option) => (
@@ -352,47 +334,45 @@ export function CourseSelection({
               )}
             </div>
 
-            {/* Step 4: Optional Learning Level */}
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#ECFDF5] border border-[#D1FAE5] flex items-center justify-center text-[#059669] shrink-0">
-                    <GraduationCap className="w-4 h-4" />
-                  </div>
-                  <h3 className="text-base font-bold text-[#0F172A]">
-                    Select your current level
-                  </h3>
-                </div>
-                <span className="text-xs font-medium text-[#94A3B8] bg-[#F1F5F9] px-2.5 py-0.5 rounded-full">
-                  Optional
-                </span>
-              </div>
+          {/* Step 4: Learning Level */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
+            <h3 className="text-base font-bold text-[#0F172A]">
+              Select your current level
+            </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {LEVEL_OPTIONS.map((lvl) => (
-                  <SelectionCard
-                    key={lvl}
-                    label={lvl}
-                    selected={level === lvl}
-                    onClick={() => setLevel((prev) => (prev === lvl ? "" : lvl))}
-                  />
-                ))}
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {LEVEL_OPTIONS.map((lvl) => (
+                <SelectionCard
+                  key={lvl}
+                  label={lvl}
+                  selected={level === lvl}
+                  onClick={() => setLevel((prev) => (prev === lvl ? "" : lvl))}
+                />
+              ))}
             </div>
           </div>
 
-          {/* Right Column: Dynamic Selection Summary */}
-          <div className="lg:col-span-5">
-            <LearningSummary
-              subject={subject}
-              dailyLabel={resolvedDailyLabel}
-              dailyMinutes={resolvedDailyMinutes}
-              durationLabel={resolvedDurationLabel}
-              durationDays={resolvedDurationDays}
-              level={level}
-              validationError={validationError}
-              onStartLearning={handleConfirmStartLearning}
-            />
+          {/* Validation Error Alert */}
+          {validationError && (
+            <div
+              role="alert"
+              className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 flex items-start gap-2 animate-fade-in"
+            >
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <span>{validationError}</span>
+            </div>
+          )}
+
+          {/* Primary Start Learning CTA */}
+          <div className="pt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={handleConfirmStartLearning}
+              className="w-full sm:w-auto min-w-[260px] py-3.5 px-8 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-sm cursor-pointer"
+            >
+              <span>Start Learning</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>

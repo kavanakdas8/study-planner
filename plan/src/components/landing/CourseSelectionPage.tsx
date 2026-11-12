@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { OnboardingSelection } from "@/types/study";
 import { CourseSelection } from "./CourseSelection";
@@ -32,17 +32,21 @@ export function CourseSelectionPage({
               CuratePlan
             </span>
           </button>
-
-          <button
-            type="button"
-            onClick={onBackToLanding}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-[#475569] hover:text-[#059669] px-3.5 py-2 rounded-xl hover:bg-[#F1F5F9] transition cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Home</span>
-          </button>
         </div>
       </header>
+
+      {/* Back button < on left below logo */}
+      <div className="max-w-7xl mx-auto w-full px-5 sm:px-8 lg:px-12 pt-5 -mb-6">
+        <button
+          type="button"
+          onClick={onBackToLanding}
+          className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9] text-[#0F172A] hover:text-[#059669] shadow-2xs transition cursor-pointer"
+          title="Back to Home"
+          aria-label="Back to Home"
+        >
+          <ChevronLeft className="w-5 h-5 stroke-[2.2]" />
+        </button>
+      </div>
 
       {/* Main Course Selection Experience */}
       <main className="flex-1 pb-16">
