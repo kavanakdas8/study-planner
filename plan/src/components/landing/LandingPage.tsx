@@ -1,22 +1,16 @@
 "use client";
 
 import React from "react";
-import {
-  CheckCircle2,
-} from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { OnboardingSelection } from "@/types/study";
 import { LandingNavbar } from "./LandingNavbar";
 import { LandingHero } from "./LandingHero";
-import { CourseSelection } from "./CourseSelection";
 
 interface LandingPageProps {
-  onStartLearning: (selection: OnboardingSelection) => void;
+  onBuildPlan: () => void;
   onNavigateLogin: () => void;
   onNavigateSignup: () => void;
   onOpenDashboard?: () => void;
   hasExistingWorkspace?: boolean;
-  initialSelection?: OnboardingSelection | null;
 }
 
 const FEATURES = [
@@ -64,12 +58,11 @@ const HOW_IT_WORKS = [
 ];
 
 export function LandingPage({
-  onStartLearning,
+  onBuildPlan,
   onNavigateLogin,
   onNavigateSignup,
   onOpenDashboard,
   hasExistingWorkspace = false,
-  initialSelection,
 }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col selection:bg-[#ECFDF5] selection:text-[#047857]">
@@ -82,7 +75,7 @@ export function LandingPage({
 
       <main className="flex-1">
         {/* Hero Section */}
-        <LandingHero />
+        <LandingHero onBuildPlan={onBuildPlan} />
 
         {/* Features Section */}
         <section
@@ -147,12 +140,6 @@ export function LandingPage({
           </div>
         </section>
 
-        {/* Interactive Course Selection & Journey Summary */}
-        <CourseSelection
-          onStartLearning={onStartLearning}
-          initialSelection={initialSelection}
-        />
-
         {/* About Section */}
         <section
           id="about"
@@ -170,16 +157,6 @@ export function LandingPage({
               With local-first storage, distraction-free focus timers, and transparent progress
               tracking, your study plans stay completely under your control.
             </p>
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-6 text-xs font-medium text-[#475569]">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-[#059669]" />
-                No mandatory signup to start
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-[#059669]" />
-                Instant local workspace persistence
-              </span>
-            </div>
           </div>
         </section>
       </main>

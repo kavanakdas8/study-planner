@@ -135,7 +135,7 @@ export function CourseSelection({
   return (
     <section
       id="course-selection"
-      className="py-16 sm:py-24 bg-[#F8FAFC] border-t border-[#E2E8F0]"
+      className="py-12 sm:py-16 bg-[#F8FAFC]"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}

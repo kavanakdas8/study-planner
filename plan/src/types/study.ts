@@ -167,7 +167,7 @@ export interface UserSettings {
   };
 }
 
-export type AppViewMode = 'landing' | 'login' | 'signup' | 'dashboard';
+export type AppViewMode = 'landing' | 'course-selection' | 'login' | 'signup' | 'dashboard';
 
 export interface OnboardingSelection {
   subject: string;

@@ -14,6 +14,7 @@ import { AnalyticsView } from "@/components/AnalyticsView";
 import { ExportSyncView } from "@/components/ExportSyncView";
 import { SettingsView } from "@/components/SettingsView";
 import { LandingPage } from "@/components/landing/LandingPage";
+import { CourseSelectionPage } from "@/components/landing/CourseSelectionPage";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { SignupPage } from "@/components/auth/SignupPage";
 import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
@@ -699,15 +700,25 @@ export default function Home() {
     );
   }
 
-  // 1. Premium EdTech Landing Page & Course Selection Flow
+  // 1. Premium EdTech Landing Page
   if (viewMode === "landing") {
     return (
       <LandingPage
-        onStartLearning={handleOnboardingStartLearning}
+        onBuildPlan={() => setViewMode("course-selection")}
         onNavigateLogin={() => setViewMode("login")}
         onNavigateSignup={() => setViewMode("signup")}
         onOpenDashboard={() => setViewMode("dashboard")}
         hasExistingWorkspace={savedPlans.length > 0}
+      />
+    );
+  }
+
+  // 2. Dedicated Course Selection Page ("What do you want to study today?")
+  if (viewMode === "course-selection") {
+    return (
+      <CourseSelectionPage
+        onStartLearning={handleOnboardingStartLearning}
+        onBackToLanding={() => setViewMode("landing")}
         initialSelection={onboardingSelection}
       />
     );
