@@ -7,16 +7,15 @@ interface BrandLogoProps {
   className?: string;
 }
 
-export function BrandLogo({ className = "w-9 h-6" }: BrandLogoProps) {
+export function BrandLogo({ className = "w-9 h-5" }: BrandLogoProps) {
   return (
     <Image
       src="/logo.png"
       alt="CuratePlan Logo"
-      width={72}
-      height={48}
+      width={70}
+      height={38}
       priority
-      className={`object-contain mix-blend-multiply shrink-0 ${className}`}
+      className={`object-contain shrink-0 ${className}`}
     />
   );
 }
-
