@@ -362,14 +362,14 @@ export function AnalyticsView({
         title: "Peak Productivity Day",
         category: "Rhythm",
         hours: `${peakDayHours} hrs`,
-        description: `${peakDayName}s are your highest-output days for ${plan?.subject || "this course"}, logging a total of ${peakDayHours} hours.`,
+        description: `${peakDayName}s are your highest-output days, logging a total of ${peakDayHours} hours.`,
       });
     } else {
       insights.push({
         title: "Study Rhythm",
         category: "Rhythm",
         hours: "0 hrs",
-        description: `Start a focus session for ${plan?.subject || "this course"} to identify your peak productivity days and build momentum.`,
+        description: "Start a focus session to identify your peak productivity days and build momentum.",
       });
     }
 
@@ -414,25 +414,18 @@ export function AnalyticsView({
     });
 
     return insights;
-  }, [subjectDistribution, planSessions, overview.avgSessionMinutes, plannedVsActual, plan?.subject]);
+  }, [subjectDistribution, planSessions, overview.avgSessionMinutes, plannedVsActual]);
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* HEADER & DATE RANGE FILTER BAR */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Analytics &amp; Progress
-            </h1>
-            {plan && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
-                {plan.subject}
-              </span>
-            )}
-          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Analytics &amp; Progress
+          </h1>
           <p className="text-xs text-slate-500 max-w-xl">
-            Detailed performance telemetry, study time distribution, and curriculum pacing insights for {plan?.subject || "your active course"}.
+            Detailed performance telemetry, study time distribution, and curriculum pacing insights.
           </p>
         </div>
 
@@ -494,7 +487,7 @@ export function AnalyticsView({
               <span className="text-sm font-normal text-slate-400">hrs</span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              {overview.totalMinutes.toLocaleString()} minutes recorded for this course
+              {overview.totalMinutes.toLocaleString()} minutes recorded
             </p>
           </div>
         </div>
