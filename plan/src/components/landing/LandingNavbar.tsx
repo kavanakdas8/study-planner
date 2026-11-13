@@ -42,7 +42,7 @@ export function LandingNavbar({
 
   return (
     <header className="relative z-40 w-full bg-transparent">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 h-[76px] flex items-center justify-between gap-6">
+      <div className="w-full px-4 sm:px-6 lg:px-8 h-[76px] flex items-center justify-between gap-6">
         {/* Left: CuratePlan Logo & Wordmark */}
         <a
           href="#"

@@ -9,7 +9,6 @@ import {
   Settings,
   History,
   ChevronLeft,
-  ChevronRight,
   Plus,
   BookOpen,
   Trash2,
@@ -99,12 +98,14 @@ export function AppSidebar({
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white border-r border-slate-200 text-slate-700 select-none transition-all duration-200">
       {/* Brand & Workspace Header */}
-      <div className="h-15 px-4 flex items-center justify-between border-b border-slate-200 shrink-0">
+      <div
+        className={`h-15 flex items-center border-b border-slate-200 shrink-0 ${isExpanded ? "justify-between px-4" : "justify-center px-2"
+          }`}
+      >
         <div
           onClick={onReturnHome}
-          className={`flex items-center gap-2.5 overflow-hidden ${
-            onReturnHome ? "cursor-pointer group hover:opacity-90 transition" : ""
-          }`}
+          className={`flex items-center gap-2.5 overflow-hidden ${onReturnHome ? "cursor-pointer group hover:opacity-90 transition" : ""
+            }`}
           title="Return to Home"
         >
           {/* Brand Logo */}
@@ -121,16 +122,6 @@ export function AppSidebar({
             </div>
           )}
         </div>
-
-        {/* Desktop Collapse Toggle */}
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          title={!collapsed ? "Collapse sidebar ([)" : "Expand sidebar ([)"}
-          className="hidden md:flex p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition cursor-pointer"
-        >
-          {!isExpanded ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
 
         {/* Mobile Close Button */}
         <button
@@ -151,9 +142,8 @@ export function AppSidebar({
             onCloseMobile();
           }}
           title={`Create Plan (${shortcutKey})`}
-          className={`w-full group flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-all shadow-xs cursor-pointer ${
-            !isExpanded ? "justify-center px-0" : ""
-          }`}
+          className={`w-full group flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-all shadow-xs cursor-pointer ${!isExpanded ? "justify-center px-0" : ""
+            }`}
         >
           <span className="flex items-center gap-2">
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -186,16 +176,14 @@ export function AppSidebar({
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
                 title={item.label}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${
-                  isActive
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${isActive
                     ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
-                } ${!isExpanded ? "justify-center px-0" : ""}`}
+                  } ${!isExpanded ? "justify-center px-0" : ""}`}
               >
                 <Icon
-                  className={`w-4 h-4 shrink-0 ${
-                    isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
-                  }`}
+                  className={`w-4 h-4 shrink-0 ${isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
+                    }`}
                 />
                 {isExpanded && <span className="truncate whitespace-nowrap">{item.label}</span>}
               </button>
@@ -220,16 +208,14 @@ export function AppSidebar({
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
                 title={item.label}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${
-                  isActive
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${isActive
                     ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
-                } ${!isExpanded ? "justify-center px-0" : ""}`}
+                  } ${!isExpanded ? "justify-center px-0" : ""}`}
               >
                 <Icon
-                  className={`w-4 h-4 shrink-0 ${
-                    isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
-                  }`}
+                  className={`w-4 h-4 shrink-0 ${isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
+                    }`}
                 />
                 {isExpanded && <span className="truncate whitespace-nowrap">{item.label}</span>}
               </button>
@@ -262,17 +248,15 @@ export function AppSidebar({
                         onSelectPlan(plan);
                         onCloseMobile();
                       }}
-                      className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition cursor-pointer border ${
-                        isActive
+                      className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition cursor-pointer border ${isActive
                           ? "bg-emerald-50/60 text-emerald-800 border-emerald-200 font-semibold shadow-xs"
                           : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2 truncate pr-2">
                         <BookOpen
-                          className={`w-3.5 h-3.5 shrink-0 ${
-                            isActive ? "text-emerald-600" : "text-slate-400"
-                          }`}
+                          className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-emerald-600" : "text-slate-400"
+                            }`}
                         />
                         <span className="truncate">{plan.subject}</span>
                       </div>
@@ -387,9 +371,8 @@ export function AppSidebar({
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`hidden md:block transition-all duration-300 ease-in-out h-screen fixed top-0 left-0 z-40 ${
-          isExpanded ? "w-64" : "w-16"
-        }`}
+        className={`hidden md:block transition-all duration-300 ease-in-out h-screen fixed top-0 left-0 z-40 ${isExpanded ? "w-64" : "w-16"
+          }`}
       >
         {sidebarContent}
       </aside>
@@ -397,9 +380,8 @@ export function AppSidebar({
       {/* Structural Spacer: preserves layout flow beside fixed sidebar */}
       <div
         aria-hidden="true"
-        className={`hidden md:block shrink-0 transition-all duration-300 ease-in-out ${
-          isExpanded ? "w-64" : "w-16"
-        }`}
+        className={`hidden md:block shrink-0 transition-all duration-300 ease-in-out ${isExpanded ? "w-64" : "w-16"
+          }`}
       />
 
       {/* Mobile Drawer Overlay */}

@@ -150,11 +150,11 @@ export function LandingPage({
               <BrandLogo className="w-12 h-8" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A]">
-              Built for focused, self-directed learners
+              CuratePlan
             </h2>
             <p className="text-sm text-[#475569] leading-relaxed max-w-2xl mx-auto">
               CuratePlan bridges the gap between setting an ambitious goal and finishing it.
-              With local-first storage, distraction-free focus timers, and transparent progress
+              With distraction-free focus timers and transparent progress
               tracking, your study plans stay completely under your control.
             </p>
           </div>
@@ -167,7 +167,7 @@ export function LandingPage({
           <div className="flex items-center gap-2">
             <BrandLogo className="w-7 h-5" />
             <span className="font-bold text-[#0F172A]">CuratePlan</span>
-            <span className="text-[#94A3B8]">· Plan Smarter. Learn Better.</span>
+            <span className="text-[#94A3B8]"> Plan Smarter. Learn Better.</span>
           </div>
           <div className="flex items-center gap-5">
             <button
