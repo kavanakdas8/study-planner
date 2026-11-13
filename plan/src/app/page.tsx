@@ -199,6 +199,8 @@ export default function Home() {
   // Landing & Onboarding Flow State
   const [viewMode, setViewMode] = useState<AppViewMode>("landing");
   const [onboardingSelection, setOnboardingSelection] = useState<OnboardingSelection | null>(null);
+  const [isOnboardingGenerating, setIsOnboardingGenerating] = useState(false);
+  const [onboardingGenerationError, setOnboardingGenerationError] = useState<string | null>(null);
 
   // Network State
   const [loading, setLoading] = useState(false);
@@ -410,6 +412,18 @@ export default function Home() {
     return normalizePlanToCurriculum(found, completedTasksMap);
   }, [savedPlans, activePlanId, completedTasksMap]);
 
+  // Debugging Log: Curriculum loaded by dashboard
+  useEffect(() => {
+    if (viewMode === "dashboard" && activePlan) {
+      console.log("[CuratePlan] Curriculum loaded by dashboard:", {
+        id: activePlan.id,
+        subject: activePlan.subject,
+        modulesCount: activePlan.modules?.length || 0,
+        tasksCount: activePlan.schedule?.reduce((acc, p) => acc + p.tasks.length, 0) || 0,
+      });
+    }
+  }, [viewMode, activePlan]);
+
   // Aggregate KPI stats for current plan
   const { totalCount, completedCount, totalMinutes } = useMemo(() => {
     if (!activePlan) return { totalCount: 0, completedCount: 0, totalMinutes: 0 };
@@ -499,12 +513,96 @@ export default function Home() {
     }
   };
 
-  // Confirm onboarding selection & transition into the existing CuratePlan dashboard
-  const handleOnboardingStartLearning = (selection: OnboardingSelection) => {
-    setOnboardingSelection(selection);
-    setActiveNavTab("dashboard");
-    setViewMode("dashboard");
-    playChime("complete");
+  // Generate curriculum with AI & transition into the CuratePlan dashboard
+  const handleOnboardingStartLearning = async (selection: OnboardingSelection) => {
+    setIsOnboardingGenerating(true);
+    setOnboardingGenerationError(null);
+
+    // Debugging Log: Selected subject and preferences
+    console.log("[CuratePlan] Selected subject and preferences:", {
+      subject: selection.subject,
+      dailyMinutes: selection.dailyMinutes,
+      dailyLabel: selection.dailyLabel,
+      durationDays: selection.durationDays,
+      durationLabel: selection.durationLabel,
+      level: selection.level,
+      totalEstimatedHours: selection.totalEstimatedHours,
+    });
+
+    const dailyHours = Number((selection.dailyMinutes / 60).toFixed(1));
+    const payload = {
+      topic: selection.subject.trim(),
+      timeframe: selection.durationLabel,
+      daily_hours: dailyHours,
+      experience_level: selection.level || "Beginner",
+      goal: `Master ${selection.subject.trim()} (${selection.durationLabel}, ${selection.dailyLabel}/day)`,
+    };
+
+    // Debugging Log: API request payload
+    console.log("[CuratePlan] API request payload:", payload);
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/generate-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(
+          errJson?.detail || `Server error (${res.status}): Failed to generate curriculum. Ensure the backend is active on port 8000.`
+        );
+      }
+
+      const planData: StudyPlan = await res.json();
+
+      // Debugging Log: API response subject
+      console.log("[CuratePlan] API response subject:", planData.subject);
+
+      const newSavedPlan: SavedPlan = {
+        ...planData,
+        id: `plan_${Date.now()}`,
+        createdAt: Date.now(),
+        daily_hours: payload.daily_hours,
+        experience_level: payload.experience_level,
+      };
+
+      const normalized = normalizePlanToCurriculum(newSavedPlan);
+
+      // Debugging Log: Curriculum saved to localStorage
+      console.log("[CuratePlan] Curriculum saved to localStorage:", normalized.id, normalized.subject);
+
+      // Prepend the new curriculum to savedPlans and immediately persist
+      setSavedPlans((prev) => {
+        const updated = [normalized, ...prev.filter((p) => p.id !== normalized.id)];
+        try {
+          localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      // Explicitly set the newly created plan as active
+      setActivePlanId(normalized.id);
+      try {
+        localStorage.setItem(STORAGE_KEY_ACTIVE_ID, normalized.id);
+        localStorage.setItem(STORAGE_KEY_ONBOARDING, JSON.stringify(selection));
+      } catch {}
+
+      // Reset selection view and navigate into dashboard
+      setSelectedPeriodIndex(null);
+      setOnboardingSelection(selection);
+      setActiveNavTab("dashboard");
+      setViewMode("dashboard");
+      playChime("complete");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "An unexpected error occurred while generating your plan.";
+      console.error("[CuratePlan] Plan generation failed:", msg);
+      setOnboardingGenerationError(msg);
+      playChime("click");
+    } finally {
+      setIsOnboardingGenerating(false);
+    }
   };
 
   // Toggle single task completion
@@ -718,8 +816,13 @@ export default function Home() {
     return (
       <CourseSelectionPage
         onStartLearning={handleOnboardingStartLearning}
-        onBackToLanding={() => setViewMode("landing")}
+        onBackToLanding={() => {
+          setOnboardingGenerationError(null);
+          setViewMode("landing");
+        }}
         initialSelection={onboardingSelection}
+        isGenerating={isOnboardingGenerating}
+        generationError={onboardingGenerationError}
       />
     );
   }

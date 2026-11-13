@@ -51,12 +51,20 @@ export function AnalyticsView({
     return Date.now();
   }, [timeRange, customEnd]);
 
-  // Filtered sessions in active window
-  const filteredSessions = useMemo(() => {
+  // Filter sessions strictly to the active course so other courses' study hours never mix
+  const planSessions = useMemo(() => {
+    if (!plan) return [];
     return sessions.filter(
+      (s) => s.planId === plan.id || (plan.subject && s.subject === plan.subject)
+    );
+  }, [sessions, plan]);
+
+  // Filtered sessions in active window for this course
+  const filteredSessions = useMemo(() => {
+    return planSessions.filter(
       (s) => s.completedAt >= rangeCutoff && s.completedAt <= rangeEndCutoff
     );
-  }, [sessions, rangeCutoff, rangeEndCutoff]);
+  }, [planSessions, rangeCutoff, rangeEndCutoff]);
 
   // 1. LEARNING OVERVIEW METRICS
   const overview = useMemo(() => {
@@ -154,7 +162,7 @@ export function AnalyticsView({
       const dayEnd = dayStart + 86400000 - 1;
       const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-      const dayMins = sessions
+      const dayMins = planSessions
         .filter((s) => s.completedAt >= dayStart && s.completedAt <= dayEnd)
         .reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
 
@@ -173,7 +181,7 @@ export function AnalyticsView({
       const dayEnd = dayStart + 86400000 - 1;
       const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-      const dayMins = sessions
+      const dayMins = planSessions
         .filter((s) => s.completedAt >= dayStart && s.completedAt <= dayEnd)
         .reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
 
@@ -207,7 +215,7 @@ export function AnalyticsView({
         dailyAvgHours: lastWeekDailyAvg,
       },
     };
-  }, [sessions]);
+  }, [planSessions]);
 
   const activeWeeklyData =
     weeklyTab === "thisWeek" ? weeklyTrends.thisWeek : weeklyTrends.lastWeek;
@@ -333,7 +341,7 @@ export function AnalyticsView({
       "Friday",
       "Saturday",
     ];
-    sessions.forEach((s) => {
+    planSessions.forEach((s) => {
       const dayIdx = new Date(s.completedAt).getDay();
       dayTotals[dayIdx] += s.durationMinutes || 0;
     });
@@ -347,14 +355,23 @@ export function AnalyticsView({
       }
     });
 
-    const peakDayName = dayLabels[maxDayIdx];
-    const peakDayHours = Number((maxDayMins / 60).toFixed(1));
-    insights.push({
-      title: "Peak Productivity Day",
-      category: "Rhythm",
-      hours: `${peakDayHours} hrs`,
-      description: `${peakDayName}s are your highest-output days, logging a total of ${peakDayHours} hours across your study history.`,
-    });
+    if (maxDayMins > 0) {
+      const peakDayName = dayLabels[maxDayIdx];
+      const peakDayHours = Number((maxDayMins / 60).toFixed(1));
+      insights.push({
+        title: "Peak Productivity Day",
+        category: "Rhythm",
+        hours: `${peakDayHours} hrs`,
+        description: `${peakDayName}s are your highest-output days for ${plan?.subject || "this course"}, logging a total of ${peakDayHours} hours.`,
+      });
+    } else {
+      insights.push({
+        title: "Study Rhythm",
+        category: "Rhythm",
+        hours: "0 hrs",
+        description: `Start a focus session for ${plan?.subject || "this course"} to identify your peak productivity days and build momentum.`,
+      });
+    }
 
     // 4. Average focus-session length
     const avgMins = overview.avgSessionMinutes;
@@ -397,18 +414,25 @@ export function AnalyticsView({
     });
 
     return insights;
-  }, [subjectDistribution, sessions, overview.avgSessionMinutes, plannedVsActual]);
+  }, [subjectDistribution, planSessions, overview.avgSessionMinutes, plannedVsActual, plan?.subject]);
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* HEADER & DATE RANGE FILTER BAR */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Analytics & Progress
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              Analytics &amp; Progress
+            </h1>
+            {plan && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
+                {plan.subject}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 max-w-xl">
-            Detailed performance telemetry, study time distribution, and curriculum pacing insights.
+            Detailed performance telemetry, study time distribution, and curriculum pacing insights for {plan?.subject || "your active course"}.
           </p>
         </div>
 
@@ -470,7 +494,7 @@ export function AnalyticsView({
               <span className="text-sm font-normal text-slate-400">hrs</span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              {overview.totalMinutes.toLocaleString()} minutes recorded
+              {overview.totalMinutes.toLocaleString()} minutes recorded for this course
             </p>
           </div>
         </div>

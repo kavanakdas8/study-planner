@@ -246,29 +246,29 @@ export function LoginPage({
             </div>
             <div>
               <h3 className="text-base font-bold text-[#0F172A]">
-                Korean Language Proficiency
+                Machine Learning &amp; AI Foundations
               </h3>
               <p className="text-xs text-[#475569] mt-0.5">
-                3-month curriculum · Hangul, grammar & daily conversation
+                3-month curriculum · Python, mathematical models &amp; neural networks
               </p>
             </div>
             <div className="space-y-2 pt-2">
               <div className="p-3 rounded-xl bg-[#ECFDF5]/60 border border-[#D1FAE5] flex items-center gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0" />
                 <span className="text-xs font-semibold text-[#0F172A]">
-                  Month 1 · Hangul Alphabet & Core Vocabulary
+                  Month 1 · Python &amp; Exploratory Data Analysis
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-3">
                 <Layers className="w-4 h-4 text-[#475569] shrink-0" />
                 <span className="text-xs font-semibold text-[#0F172A]">
-                  Month 2 · Sentence Patterns & Verb Conjugation
+                  Month 2 · Supervised Models &amp; Cost Functions
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-3">
                 <Calendar className="w-4 h-4 text-[#475569] shrink-0" />
                 <span className="text-xs font-semibold text-[#0F172A]">
-                  Month 3 · Listening Practice & Everyday Dialogues
+                  Month 3 · Neural Networks &amp; Production Inference
                 </span>
               </div>
             </div>

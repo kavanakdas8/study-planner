@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowRight, AlertCircle } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { DifficultyLevel, OnboardingSelection } from "@/types/study";
 import { SelectionCard } from "./SelectionCard";
 
 interface CourseSelectionProps {
   onStartLearning: (selection: OnboardingSelection) => void;
   initialSelection?: OnboardingSelection | null;
+  isGenerating?: boolean;
+  generationError?: string | null;
 }
 
 const SUGGESTED_SUBJECTS = [
@@ -15,10 +17,10 @@ const SUGGESTED_SUBJECTS = [
   "Machine Learning",
   "Web Development",
   "Data Structures & Algorithms",
-  "Korean",
-  "Japanese",
-  "Mathematics",
+  "System Design",
   "Cloud Computing",
+  "Mathematics",
+  "Cybersecurity",
 ];
 
 const DAILY_TIME_OPTIONS = [
@@ -44,6 +46,8 @@ const LEVEL_OPTIONS: DifficultyLevel[] = ["Beginner", "Intermediate", "Advanced"
 export function CourseSelection({
   onStartLearning,
   initialSelection,
+  isGenerating = false,
+  generationError = null,
 }: CourseSelectionProps) {
   const [subject, setSubject] = useState(initialSelection?.subject || "");
   const [dailyOptionId, setDailyOptionId] = useState<string>("1h");
@@ -166,7 +170,7 @@ export function CourseSelection({
                   setSubject(e.target.value);
                   if (validationError) setValidationError(null);
                 }}
-                placeholder="e.g. Machine Learning, Korean, Data Structures, Web Development..."
+                placeholder="e.g. Machine Learning, Python, Web Development, Data Structures..."
                 className="w-full px-4 py-3.5 rounded-xl bg-[#F8FAFC] focus:bg-white border border-[#E2E8F0] focus:border-[#059669] focus:ring-4 focus:ring-[#059669]/10 text-sm sm:text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none transition"
               />
 
@@ -352,6 +356,21 @@ export function CourseSelection({
             </div>
           </div>
 
+          {/* Generation Error Alert */}
+          {generationError && (
+            <div
+              role="alert"
+              className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 flex items-start gap-2.5 animate-fade-in"
+            >
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold text-red-900">Curriculum Generation Failed</p>
+                <p>{generationError}</p>
+                <p className="text-[11px] text-red-700">Please verify the AI backend is active on port 8000 and try again.</p>
+              </div>
+            </div>
+          )}
+
           {/* Validation Error Alert */}
           {validationError && (
             <div
@@ -364,15 +383,34 @@ export function CourseSelection({
           )}
 
           {/* Primary Start Learning CTA */}
-          <div className="pt-2 flex justify-center">
+          <div className="pt-2 flex flex-col items-center gap-2">
             <button
               type="button"
+              disabled={isGenerating}
               onClick={handleConfirmStartLearning}
-              className="w-full sm:w-auto min-w-[260px] py-3.5 px-8 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-sm cursor-pointer"
+              className={`w-full sm:w-auto min-w-[260px] py-3.5 px-8 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-sm ${
+                isGenerating
+                  ? "bg-[#059669]/70 text-white cursor-not-allowed"
+                  : "bg-[#059669] hover:bg-[#047857] text-white cursor-pointer"
+              }`}
             >
-              <span>Start Learning</span>
-              <ArrowRight className="w-4 h-4" />
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating Curriculum with AI...</span>
+                </>
+              ) : (
+                <>
+                  <span>Start Learning</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
+            {isGenerating && (
+              <p className="text-xs text-[#64748B] animate-pulse">
+                Synthesizing modules, topics, and schedule tailored to your goal...
+              </p>
+            )}
           </div>
         </div>
       </div>

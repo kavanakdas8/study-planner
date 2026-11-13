@@ -10,12 +10,16 @@ interface CourseSelectionPageProps {
   onStartLearning: (selection: OnboardingSelection) => void;
   onBackToLanding: () => void;
   initialSelection?: OnboardingSelection | null;
+  isGenerating?: boolean;
+  generationError?: string | null;
 }
 
 export function CourseSelectionPage({
   onStartLearning,
   onBackToLanding,
   initialSelection,
+  isGenerating = false,
+  generationError = null,
 }: CourseSelectionPageProps) {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col selection:bg-[#ECFDF5] selection:text-[#047857]">
@@ -53,6 +57,8 @@ export function CourseSelectionPage({
         <CourseSelection
           onStartLearning={onStartLearning}
           initialSelection={initialSelection}
+          isGenerating={isGenerating}
+          generationError={generationError}
         />
       </main>
     </div>

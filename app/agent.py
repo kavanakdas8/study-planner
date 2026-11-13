@@ -12,7 +12,12 @@ env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # Models to attempt with fallback
-MODELS_TO_TRY = ["gemini-3.5-flash-lite", "gemini-3.5-flash"]
+MODELS_TO_TRY = [
+    "gemini-flash-lite-latest",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
+]
 
 # Structured Models for Study Plan
 class Task(BaseModel):
@@ -71,6 +76,7 @@ def generate_plan(
     client = get_client()
 
     goal_prompt = f"\nSpecific Student Focus: {goal}" if goal else ""
+    print(f"[Backend] Subject used in Gemini prompt: '{topic}'")
     prompt = f"""
     You are an expert pedagogical study coach and agentic curriculum designer for CuratePlan.
 

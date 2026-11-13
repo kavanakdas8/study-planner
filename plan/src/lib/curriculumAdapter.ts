@@ -192,11 +192,12 @@ export function normalizePlanToCurriculum(
 }
 
 function generateDefaultMilestones(plan: SavedPlan, modules: CurriculumModule[]): Milestone[] {
+  const mod0Title = modules[0]?.title || "Module 1";
   return [
     {
       id: `ms_${plan.id}_1`,
-      title: "Foundations & Protocol Mastery",
-      description: "Complete Module 1 foundational protocol and RPC exercises",
+      title: `${mod0Title} Foundations Mastery`,
+      description: `Complete foundational exercises and core tasks for ${plan.subject}`,
       target_date: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
       type: "module_completion",
       target_value: modules[0]?.id || "",
@@ -204,8 +205,8 @@ function generateDefaultMilestones(plan: SavedPlan, modules: CurriculumModule[])
     },
     {
       id: `ms_${plan.id}_2`,
-      title: "Halfway Architecture Milestone (50%)",
-      description: "Reach 50% completion across all curriculum tasks",
+      title: "Halfway Learning Milestone (50%)",
+      description: `Reach 50% completion across all ${plan.subject} curriculum tasks`,
       target_date: new Date(Date.now() + 86400000 * 7).toISOString().split("T")[0],
       type: "percentage",
       target_value: 50,
@@ -213,8 +214,8 @@ function generateDefaultMilestones(plan: SavedPlan, modules: CurriculumModule[])
     },
     {
       id: `ms_${plan.id}_3`,
-      title: "Complete All Intermediate Core Topics",
-      description: "Successfully build consensus and storage engine layers",
+      title: "Complete All Core Topics",
+      description: `Successfully master intermediate concepts and exercises in ${plan.subject}`,
       target_date: new Date(Date.now() + 86400000 * 11).toISOString().split("T")[0],
       type: "difficulty",
       target_value: "Intermediate",
@@ -223,7 +224,7 @@ function generateDefaultMilestones(plan: SavedPlan, modules: CurriculumModule[])
     {
       id: `ms_${plan.id}_4`,
       title: "Full Course Graduation",
-      description: "Finish all production chaos simulations and retrospective",
+      description: `Finish all curriculum milestones and final review for ${plan.subject}`,
       target_date: new Date(Date.now() + 86400000 * 14).toISOString().split("T")[0],
       type: "course_completion",
       completed: false,

@@ -54,6 +54,8 @@ def health_check():
 @app.post("/generate-plan", response_model=StudyPlan)
 def make_plan(payload: PlanRequest):
     try:
+        print(f"[Backend] Received subject: '{payload.topic}'")
+        print(f"[Backend] Received study preferences: timeframe='{payload.timeframe}', daily_hours={payload.daily_hours}, level='{payload.experience_level}'")
         plan = generate_plan(
             topic=payload.topic,
             timeframe=payload.timeframe,
@@ -61,8 +63,10 @@ def make_plan(payload: PlanRequest):
             experience_level=payload.experience_level,
             goal=payload.goal
         )
+        print(f"[Backend] Generated curriculum subject: '{plan.subject}' with {len(plan.schedule)} periods")
         return plan
     except Exception as e:
+        print(f"[Backend] Error generating plan: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/chat", response_model=ChatResponse)
