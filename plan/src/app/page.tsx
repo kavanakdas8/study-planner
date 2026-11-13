@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings, AppViewMode, OnboardingSelection } from "@/types/study";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
@@ -12,6 +12,7 @@ import { EmptyStateHero } from "@/components/EmptyStateHero";
 import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
 import { AnalyticsView } from "@/components/AnalyticsView";
 import { SettingsView } from "@/components/SettingsView";
+import { UnsavedChangesModal } from "@/components/UnsavedChangesModal";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { CourseSelectionPage } from "@/components/landing/CourseSelectionPage";
 import { LoginPage } from "@/components/auth/LoginPage";
@@ -19,7 +20,6 @@ import { SignupPage } from "@/components/auth/SignupPage";
 import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
 import { exportCurriculumToPDF } from "@/lib/pdfGenerator";
 import {
-  STORAGE_KEY_PLANS,
   STORAGE_KEY_ACTIVE_ID,
   STORAGE_KEY_PROGRESS,
   STORAGE_KEY_SIDEBAR_COLLAPSED,
@@ -31,6 +31,11 @@ import {
   DEFAULT_USER_SETTINGS,
   normalizePlanToCurriculum,
   generateSeedSessions,
+  loadSavedPlans,
+  saveSavedPlans,
+  saveCurriculum,
+  clearCurriculum,
+  checkCurriculumDirty,
 } from "@/lib/curriculumAdapter";
 import {
   Clock,
@@ -38,7 +43,11 @@ import {
   Check,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
   X,
+  Save,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 
 const DEFAULT_SEED_PLAN: SavedPlan = {
@@ -184,6 +193,16 @@ export default function Home() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
 
+  // Editable Working Draft & Manual Save State
+  const [draftPlan, setDraftPlan] = useState<SavedPlan | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+
+  // Unsaved Changes Protection Modal State
+  const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [pendingActionContext, setPendingActionContext] = useState<string>("");
+
   // UI View & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
@@ -218,7 +237,7 @@ export default function Home() {
   useEffect(() => {
     queueMicrotask(() => {
       try {
-        const storedPlans = localStorage.getItem(STORAGE_KEY_PLANS);
+        const storedPlans = loadSavedPlans();
         const storedActiveId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
         const storedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
         const storedTimer = localStorage.getItem(STORAGE_KEY_ACTIVE_TIMER);
@@ -227,20 +246,20 @@ export default function Home() {
         const storedOnboarding = localStorage.getItem(STORAGE_KEY_ONBOARDING);
         const sessionViewMode = sessionStorage.getItem(STORAGE_KEY_VIEW_MODE) as AppViewMode | null;
 
-        if (storedPlans) {
-          const parsed = JSON.parse(storedPlans) as SavedPlan[];
-          const normalized = parsed.map((p) => normalizePlanToCurriculum(p));
-          setSavedPlans(normalized);
-          if (storedActiveId && normalized.some((p) => p.id === storedActiveId)) {
-            setActivePlanId(storedActiveId);
-          } else if (normalized.length > 0) {
-            setActivePlanId(normalized[0].id);
-          }
+        if (storedPlans.length > 0) {
+          setSavedPlans(storedPlans);
+          const initialPlan =
+            (storedActiveId && storedPlans.find((p) => p.id === storedActiveId)) ||
+            storedPlans[0];
+          setActivePlanId(initialPlan.id);
+          setDraftPlan(JSON.parse(JSON.stringify(initialPlan)));
         } else {
           // First-time visit: Initialize with default enterprise seed plan
           const normalizedSeed = normalizePlanToCurriculum(DEFAULT_SEED_PLAN, DEFAULT_COMPLETED_SEED);
           setSavedPlans([normalizedSeed]);
+          saveSavedPlans([normalizedSeed]);
           setActivePlanId(normalizedSeed.id);
+          setDraftPlan(JSON.parse(JSON.stringify(normalizedSeed)));
           setCompletedTasksMap(DEFAULT_COMPLETED_SEED);
         }
 
@@ -284,7 +303,9 @@ export default function Home() {
       } catch {
         const normalizedSeed = normalizePlanToCurriculum(DEFAULT_SEED_PLAN, DEFAULT_COMPLETED_SEED);
         setSavedPlans([normalizedSeed]);
+        saveSavedPlans([normalizedSeed]);
         setActivePlanId(normalizedSeed.id);
+        setDraftPlan(JSON.parse(JSON.stringify(normalizedSeed)));
         setSessions(generateSeedSessions(DEFAULT_SEED_PLAN.id));
         setViewMode("landing");
       } finally {
@@ -293,14 +314,7 @@ export default function Home() {
     });
   }, []);
 
-  // Sync to localStorage
-  useEffect(() => {
-    if (!mounted) return;
-    try {
-      localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(savedPlans));
-    } catch {}
-  }, [savedPlans, mounted]);
-
+  // Active Plan ID sync
   useEffect(() => {
     if (!mounted) return;
     try {
@@ -369,47 +383,37 @@ export default function Home() {
     } catch {}
   }, [onboardingSelection, mounted]);
 
-  // Global Keyboard Shortcuts
+  // Last Saved Plan resolution (from savedPlans list)
+  const lastSavedPlan = useMemo(() => {
+    if (!activePlanId) return null;
+    const found = savedPlans.find((p) => p.id === activePlanId);
+    return found ? normalizePlanToCurriculum(found, completedTasksMap) : null;
+  }, [savedPlans, activePlanId, completedTasksMap]);
+
+  // Dirty state checking: does the current working draft differ from the last saved version?
+  const hasUnsavedChanges = useMemo(() => {
+    return checkCurriculumDirty(draftPlan, lastSavedPlan);
+  }, [draftPlan, lastSavedPlan]);
+
+  // Active Plan Resolution: The active working draft, or fallback to saved plan
+  const activePlan = useMemo(() => {
+    if (draftPlan) {
+      return normalizePlanToCurriculum(draftPlan, completedTasksMap);
+    }
+    return lastSavedPlan;
+  }, [draftPlan, lastSavedPlan, completedTasksMap]);
+
+  // Unsaved Changes Protection on Browser Tab Close / Refresh
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K -> Open creation modal
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
         e.preventDefault();
-        setError("");
-        setIsModalOpen((prev) => !prev);
-        return;
-      }
-
-      // [ or Cmd/Ctrl + B -> Toggle sidebar collapse
-      if (
-        (e.key === "[" && !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) ||
-        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b")
-      ) {
-        e.preventDefault();
-        setSidebarCollapsed((prev) => !prev);
-        return;
-      }
-
-      // / -> Focus search
-      if (
-        e.key === "/" &&
-        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)
-      ) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
+        e.returnValue = "";
       }
     };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // Active Plan Resolution
-  const activePlan = useMemo(() => {
-    const found = savedPlans.find((p) => p.id === activePlanId);
-    if (!found) return null;
-    return normalizePlanToCurriculum(found, completedTasksMap);
-  }, [savedPlans, activePlanId, completedTasksMap]);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Debugging Log: Curriculum loaded by dashboard
   useEffect(() => {
@@ -464,7 +468,7 @@ export default function Home() {
   const todayPriorityTask = pendingTasksList[0] || null;
   const upcomingTasksSlice = pendingTasksList.slice(1, 5);
 
-  // API Generate Plan Handler
+  // API Generate Plan Handler (Creates unsaved working draft)
   const handleGeneratePlan = async (payload: {
     topic: string;
     timeframe: string;
@@ -490,7 +494,7 @@ export default function Home() {
 
       const planData: StudyPlan = await res.json();
 
-      const newSavedPlan: SavedPlan = {
+      const newDraftPlan: SavedPlan = {
         ...planData,
         id: `plan_${Date.now()}`,
         createdAt: Date.now(),
@@ -498,8 +502,9 @@ export default function Home() {
         experience_level: payload.experience_level,
       };
 
-      const normalized = normalizePlanToCurriculum(newSavedPlan);
-      setSavedPlans((prev) => [normalized, ...prev]);
+      const normalized = normalizePlanToCurriculum(newDraftPlan);
+      // Treat as new unsaved draft!
+      setDraftPlan(normalized);
       setActivePlanId(normalized.id);
       setSelectedPeriodIndex(null);
       setIsModalOpen(false);
@@ -512,7 +517,7 @@ export default function Home() {
     }
   };
 
-  // Generate curriculum with AI & transition into the CuratePlan dashboard
+  // Generate curriculum with AI & transition into the CuratePlan dashboard (as unsaved review draft)
   const handleOnboardingStartLearning = async (selection: OnboardingSelection) => {
     setIsOnboardingGenerating(true);
     setOnboardingGenerationError(null);
@@ -559,7 +564,7 @@ export default function Home() {
       // Debugging Log: API response subject
       console.log("[CuratePlan] API response subject:", planData.subject);
 
-      const newSavedPlan: SavedPlan = {
+      const newDraftPlan: SavedPlan = {
         ...planData,
         id: `plan_${Date.now()}`,
         createdAt: Date.now(),
@@ -567,26 +572,12 @@ export default function Home() {
         experience_level: payload.experience_level,
       };
 
-      const normalized = normalizePlanToCurriculum(newSavedPlan);
+      const normalized = normalizePlanToCurriculum(newDraftPlan);
 
-      // Debugging Log: Curriculum saved to localStorage
-      console.log("[CuratePlan] Curriculum saved to localStorage:", normalized.id, normalized.subject);
-
-      // Prepend the new curriculum to savedPlans and immediately persist
-      setSavedPlans((prev) => {
-        const updated = [normalized, ...prev.filter((p) => p.id !== normalized.id)];
-        try {
-          localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
-
-      // Explicitly set the newly created plan as active
+      // CRITICAL: Treat as newly generated unsaved review draft.
+      // Do not automatically persist to savedPlans or localStorage.
+      setDraftPlan(normalized);
       setActivePlanId(normalized.id);
-      try {
-        localStorage.setItem(STORAGE_KEY_ACTIVE_ID, normalized.id);
-        localStorage.setItem(STORAGE_KEY_ONBOARDING, JSON.stringify(selection));
-      } catch {}
 
       // Reset selection view and navigate into dashboard
       setSelectedPeriodIndex(null);
@@ -603,6 +594,195 @@ export default function Home() {
       setIsOnboardingGenerating(false);
     }
   };
+
+  // Explicit User Save Handler
+  const handleSaveCurriculum = useCallback(async () => {
+    if (isSaving || !draftPlan || !hasUnsavedChanges) return;
+
+    setIsSaving(true);
+    playChime("click");
+
+    try {
+      // Validate draft
+      if (!draftPlan.subject.trim()) {
+        throw new Error("Curriculum title cannot be empty.");
+      }
+      if (!draftPlan.schedule || draftPlan.schedule.length === 0) {
+        throw new Error("Curriculum must contain at least one learning module.");
+      }
+
+      // Small async pause for tactile UI feedback
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      const updatedPlans = saveCurriculum(draftPlan);
+      setSavedPlans(updatedPlans);
+      setActivePlanId(draftPlan.id);
+      try {
+        localStorage.setItem(STORAGE_KEY_ACTIVE_ID, draftPlan.id);
+      } catch {}
+
+      playChime("complete");
+      setSaveSuccessMessage(`"${draftPlan.subject}" saved to Study History!`);
+      setTimeout(() => setSaveSuccessMessage(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save curriculum.";
+      alert(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isSaving, draftPlan, hasUnsavedChanges]);
+
+  // Explicit Discard Changes Handler
+  const handleDiscardCurriculum = () => {
+    playChime("click");
+    if (lastSavedPlan) {
+      // Restore working draft back to last explicitly saved version
+      setDraftPlan(JSON.parse(JSON.stringify(lastSavedPlan)));
+      setSaveSuccessMessage("Draft changes discarded. Restored last saved curriculum.");
+      setTimeout(() => setSaveSuccessMessage(null), 3000);
+    } else {
+      // Newly generated plan was never saved: revert to first saved plan in history or null
+      if (savedPlans.length > 0) {
+        const fallback = savedPlans[0];
+        setActivePlanId(fallback.id);
+        setDraftPlan(JSON.parse(JSON.stringify(fallback)));
+      } else {
+        setActivePlanId(null);
+        setDraftPlan(null);
+      }
+      setSaveSuccessMessage("Draft curriculum discarded.");
+      setTimeout(() => setSaveSuccessMessage(null), 3000);
+    }
+  };
+
+  // Protected Action Wrapper for Unsaved Changes
+  const handleProtectedAction = useCallback((action: () => void, contextDescription: string) => {
+    if (hasUnsavedChanges) {
+      setPendingAction(() => action);
+      setPendingActionContext(contextDescription);
+      setIsUnsavedModalOpen(true);
+    } else {
+      action();
+    }
+  }, [hasUnsavedChanges]);
+
+  const handleSelectPlan = (targetPlan: SavedPlan) => {
+    handleProtectedAction(() => {
+      setActivePlanId(targetPlan.id);
+      setDraftPlan(JSON.parse(JSON.stringify(targetPlan)));
+      setSelectedPeriodIndex(null);
+    }, `Switching to "${targetPlan.subject}"`);
+  };
+
+  const handleReturnHome = () => {
+    handleProtectedAction(() => {
+      setViewMode("landing");
+    }, "Returning to the home page");
+  };
+
+  const handleOpenNewPlan = useCallback(() => {
+    handleProtectedAction(() => {
+      setError("");
+      setIsModalOpen(true);
+    }, "Creating a new curriculum");
+  }, [handleProtectedAction]);
+
+  const handleModalSaveAndProceed = async () => {
+    if (draftPlan) {
+      const updated = saveCurriculum(draftPlan);
+      setSavedPlans(updated);
+      setActivePlanId(draftPlan.id);
+    }
+    setIsUnsavedModalOpen(false);
+    if (pendingAction) {
+      const action = pendingAction;
+      setPendingAction(null);
+      action();
+    }
+  };
+
+  const handleModalDiscardAndProceed = () => {
+    handleDiscardCurriculum();
+    setIsUnsavedModalOpen(false);
+    if (pendingAction) {
+      const action = pendingAction;
+      setPendingAction(null);
+      action();
+    }
+  };
+
+  const handleModalCancel = () => {
+    setIsUnsavedModalOpen(false);
+    setPendingAction(null);
+    setPendingActionContext("");
+  };
+
+  // Update Plan modifications from CurriculumRoadmapView or SettingsView
+  const handleUpdatePlan = (updatedPlan: SavedPlan) => {
+    setDraftPlan(updatedPlan);
+  };
+
+  // Delete plan from storage
+  const handleDeletePlan = (planId: string) => {
+    playChime("click");
+    const updated = clearCurriculum(planId);
+    setSavedPlans(updated);
+    if (activePlanId === planId) {
+      if (updated.length > 0) {
+        setActivePlanId(updated[0].id);
+        setDraftPlan(JSON.parse(JSON.stringify(updated[0])));
+      } else {
+        setActivePlanId(null);
+        setDraftPlan(null);
+      }
+    }
+    setSaveSuccessMessage("Curriculum deleted.");
+    setTimeout(() => setSaveSuccessMessage(null), 3000);
+  };
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + S -> Save Curriculum Changes
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (hasUnsavedChanges && !isSaving && draftPlan) {
+          handleSaveCurriculum();
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + K -> Open creation modal
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setError("");
+        handleOpenNewPlan();
+        return;
+      }
+
+      // [ or Cmd/Ctrl + B -> Toggle sidebar collapse
+      if (
+        (e.key === "[" && !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) ||
+        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b")
+      ) {
+        e.preventDefault();
+        setSidebarCollapsed((prev) => !prev);
+        return;
+      }
+
+      // / -> Focus search
+      if (
+        e.key === "/" &&
+        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [hasUnsavedChanges, isSaving, draftPlan, handleOpenNewPlan, handleSaveCurriculum]);
 
   // Toggle single task completion
   const handleToggleTask = (taskId: string) => {
@@ -647,13 +827,6 @@ export default function Home() {
       isRunning: true,
       lastTickAt: Date.now(),
     });
-  };
-
-  // Update Plan modifications from CurriculumRoadmapView
-  const handleUpdatePlan = (updatedPlan: SavedPlan) => {
-    setSavedPlans((prev) =>
-      prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p))
-    );
   };
 
   // Export Plan to Professional PDF Document
@@ -722,49 +895,7 @@ export default function Home() {
     }
   };
 
-  // Delete plan from storage
-  const handleDeletePlan = (planId: string) => {
-    playChime("click");
-    setSavedPlans((prev) => prev.filter((p) => p.id !== planId));
-    if (activePlanId === planId) {
-      const remaining = savedPlans.filter((p) => p.id !== planId);
-      setActivePlanId(remaining.length > 0 ? remaining[0].id : null);
-    }
-  };
 
-  // Permanent Data Wipe
-  const handleClearAllData = () => {
-    try {
-      localStorage.clear();
-    } catch {}
-    setSavedPlans([]);
-    setActivePlanId(null);
-    setCompletedTasksMap({});
-    setSessions([]);
-    setUserSettings(DEFAULT_USER_SETTINGS);
-    setActiveTimer(null);
-    setActiveNavTab("dashboard");
-    playChime("click");
-  };
-
-  // Full backup JSON download
-  const handleExportFullBackup = () => {
-    const backup = {
-      version: "1.0",
-      exportedAt: new Date().toISOString(),
-      generator: "CuratePlan Enterprise",
-      plans: savedPlans,
-      sessions,
-      completedTasksMap,
-      settings: userSettings,
-    };
-    downloadFile(
-      `curateplan-backup-${new Date().toISOString().split("T")[0]}.json`,
-      JSON.stringify(backup, null, 2),
-      "application/json"
-    );
-    playChime("click");
-  };
 
   if (!mounted) {
     return (
@@ -842,17 +973,11 @@ export default function Home() {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         savedPlans={savedPlans}
         activePlanId={activePlanId}
-        onSelectPlan={(p) => {
-          setActivePlanId(p.id);
-          setSelectedPeriodIndex(null);
-        }}
+        onSelectPlan={handleSelectPlan}
         onDeletePlan={handleDeletePlan}
-        onOpenCreateModal={() => {
-          setError("");
-          setIsModalOpen(true);
-        }}
+        onOpenCreateModal={handleOpenNewPlan}
         onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
-        onReturnHome={() => setViewMode("landing")}
+        onReturnHome={handleReturnHome}
         activeTimer={activeTimer}
         completedTasksMap={completedTasksMap}
         activeNavTab={activeNavTab}
@@ -865,10 +990,7 @@ export default function Home() {
         <TopBar
           activePlan={activePlan}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
-          onOpenCreateModal={() => {
-            setError("");
-            setIsModalOpen(true);
-          }}
+          onOpenCreateModal={handleOpenNewPlan}
           onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
           onExportPDF={handleExportPDF}
           onExportMarkdown={handleExportMarkdown}
@@ -877,6 +999,10 @@ export default function Home() {
           onFocusSearch={() => searchInputRef.current?.focus()}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          hasUnsavedChanges={hasUnsavedChanges}
+          isSaving={isSaving}
+          onSaveCurriculum={handleSaveCurriculum}
+          onDiscardChanges={handleDiscardCurriculum}
         />
 
         {/* Dynamic Section Translation */}
@@ -916,13 +1042,112 @@ export default function Home() {
             <SettingsView
               userSettings={userSettings}
               onUpdateSettings={setUserSettings}
+              activePlan={activePlan}
+              onUpdateDraftPlan={handleUpdatePlan}
+              onDeletePlan={handleDeletePlan}
               savedPlans={savedPlans}
-              onClearAllData={handleClearAllData}
-              onExportFullBackup={handleExportFullBackup}
+              hasUnsavedChanges={hasUnsavedChanges}
+              onSaveCurriculum={handleSaveCurriculum}
             />
           ) : activePlan ? (
             /* DEFAULT: DASHBOARD VIEW */
             <div className="space-y-6">
+              {/* Save Success Toast Banner */}
+              {saveSuccessMessage && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-3 shadow-2xs animate-fade-in">
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-semibold">{saveSuccessMessage}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSaveSuccessMessage(null)}
+                    className="text-emerald-700 hover:text-emerald-950 cursor-pointer p-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Unsaved Changes Banner: Newly generated plan vs edited draft */}
+              {hasUnsavedChanges && (
+                !lastSavedPlan ? (
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+                    <div className="flex items-start sm:items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <h3 className="text-xs font-bold text-emerald-950 flex items-center gap-2">
+                          <span>Curriculum Generated for &ldquo;{activePlan.subject}&rdquo;</span>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-200/90 text-emerald-900 text-[10px] font-mono font-semibold">
+                            Unsaved Review Draft
+                          </span>
+                        </h3>
+                        <p className="text-[11px] text-emerald-800">
+                          Review your synthesized curriculum below. Click <strong>Save Curriculum</strong> to store it in your Study History.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleDiscardCurriculum}
+                        className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                      >
+                        Discard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveCurriculum}
+                        disabled={isSaving}
+                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs active:scale-95"
+                      >
+                        {isSaving ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>Save Curriculum</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs animate-fade-in text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <div>
+                        <span className="font-bold text-amber-900">Unsaved Changes:</span>
+                        <span className="ml-1 text-amber-800">
+                          You have modified this curriculum. Click Save to make your changes permanent.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleDiscardCurriculum}
+                        className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100/60 text-slate-700 text-[11px] font-semibold border border-amber-200 transition cursor-pointer"
+                      >
+                        Discard Changes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveCurriculum}
+                        disabled={isSaving}
+                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer shadow-xs"
+                      >
+                        {isSaving ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Save className="w-3 h-3" />
+                        )}
+                        <span>Save</span>
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
               {/* Onboarding Context Banner (if user transitioned from onboarding) */}
               {onboardingSelection && (
                 <div className="p-3.5 rounded-xl bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950 flex flex-wrap items-center justify-between gap-3 shadow-2xs animate-fade-in">
@@ -1171,15 +1396,26 @@ export default function Home() {
         savedPlans={savedPlans}
         activePlanId={activePlanId}
         onSelectPlan={(p) => {
-          setActivePlanId(p.id);
-          setSelectedPeriodIndex(null);
+          setIsHistoryDrawerOpen(false);
+          handleSelectPlan(p);
         }}
         onDeletePlan={handleDeletePlan}
         onOpenNewPlanModal={() => {
-          setError("");
-          setIsModalOpen(true);
+          setIsHistoryDrawerOpen(false);
+          handleOpenNewPlan();
         }}
         completedTasksMap={completedTasksMap}
+      />
+
+      {/* Unsaved Changes Confirmation Protection Modal */}
+      <UnsavedChangesModal
+        isOpen={isUnsavedModalOpen}
+        onSave={handleModalSaveAndProceed}
+        onDiscard={handleModalDiscardAndProceed}
+        onCancel={handleModalCancel}
+        isSaving={isSaving}
+        planTitle={activePlan?.subject}
+        actionContext={pendingActionContext}
       />
     </div>
   );

@@ -92,6 +92,7 @@ export interface SavedPlan extends StudyPlan {
   milestones?: Milestone[];
   revisions?: RevisionItem[];
   lastModifiedAt?: number;
+  isArchived?: boolean;
 }
 
 export interface ActiveTimer {
@@ -122,11 +123,12 @@ export interface UserSettings {
   general: {
     displayName: string;
     avatarInitials: string;
-    defaultDashboardView: 'table' | 'kanban' | 'timeline' | 'graph';
+    defaultDashboardView: 'roadmap' | 'cards' | 'timeline' | 'table';
     defaultPlanId: string;
     language: string;
     dateFormat: 'YYYY-MM-DD' | 'MM/DD/YYYY' | 'DD/MM/YYYY';
     timeFormat: '12h' | '24h';
+    timezone?: string;
   };
   study: {
     dailyStudyGoalHours: number;
@@ -138,6 +140,8 @@ export interface UserSettings {
     autoRescheduling: boolean;
     revisionScheduler: boolean;
     revisionIntervals: number[]; // default [1, 3, 7, 14]
+    studyStartTime?: string;
+    showCompletedTasks?: boolean;
   };
   timer: {
     pomodoroDurationMinutes: number;
