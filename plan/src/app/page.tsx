@@ -11,7 +11,6 @@ import { PlanHistorySidebar } from "@/components/PlanHistorySidebar";
 import { EmptyStateHero } from "@/components/EmptyStateHero";
 import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
 import { AnalyticsView } from "@/components/AnalyticsView";
-import { ExportSyncView } from "@/components/ExportSyncView";
 import { SettingsView } from "@/components/SettingsView";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { CourseSelectionPage } from "@/components/landing/CourseSelectionPage";
@@ -733,29 +732,6 @@ export default function Home() {
     }
   };
 
-  // Restore Backup Archive
-  const handleRestoreBackup = (data: {
-    plans: SavedPlan[];
-    sessions: StudySession[];
-    completedTasksMap: Record<string, boolean>;
-    settings?: UserSettings;
-  }) => {
-    if (data.plans.length > 0) {
-      const normalized = data.plans.map((p) => normalizePlanToCurriculum(p));
-      setSavedPlans(normalized);
-      setActivePlanId(normalized[0].id);
-    }
-    if (data.sessions) {
-      setSessions(data.sessions);
-    }
-    if (data.completedTasksMap) {
-      setCompletedTasksMap(data.completedTasksMap);
-    }
-    if (data.settings) {
-      setUserSettings(data.settings);
-    }
-  };
-
   // Permanent Data Wipe
   const handleClearAllData = () => {
     try {
@@ -934,16 +910,6 @@ export default function Home() {
                   );
                 }
               }}
-            />
-          ) : activeNavTab === "export" ? (
-            /* SECTION 3: EXPORT & SYNC */
-            <ExportSyncView
-              plan={activePlan}
-              savedPlans={savedPlans}
-              sessions={sessions}
-              completedTasksMap={completedTasksMap}
-              userSettings={userSettings}
-              onRestoreBackup={handleRestoreBackup}
             />
           ) : activeNavTab === "settings" ? (
             /* SECTION 4: SETTINGS */

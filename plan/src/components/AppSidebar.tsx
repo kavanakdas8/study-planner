@@ -5,9 +5,7 @@ import {
   LayoutDashboard,
   MapPin,
   BarChart3,
-  Share2,
   Settings,
-  History,
   ChevronLeft,
   Plus,
   BookOpen,
@@ -28,7 +26,7 @@ interface AppSidebarProps {
   onSelectPlan: (plan: SavedPlan) => void;
   onDeletePlan: (planId: string) => void;
   onOpenCreateModal: () => void;
-  onOpenHistoryModal: () => void;
+  onOpenHistoryModal?: () => void;
   onReturnHome?: () => void;
   activeTimer: ActiveTimer | null;
   completedTasksMap: Record<string, boolean>;
@@ -46,7 +44,6 @@ export function AppSidebar({
   onSelectPlan,
   onDeletePlan,
   onOpenCreateModal,
-  onOpenHistoryModal,
   onReturnHome,
   activeTimer,
   completedTasksMap,
@@ -77,9 +74,6 @@ export function AppSidebar({
     if (onSelectNavTab) {
       onSelectNavTab(tabId);
     }
-    if (tabId === "history") {
-      onOpenHistoryModal();
-    }
     onCloseMobile();
   };
 
@@ -87,11 +81,9 @@ export function AppSidebar({
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "curriculum", label: "Curriculum Roadmap", icon: MapPin },
     { id: "analytics", label: "Analytics & Progress", icon: BarChart3 },
-    { id: "history", label: "Study History", icon: History },
   ];
 
   const manageNavItems = [
-    { id: "export", label: "Export & Sync", icon: Share2 },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -223,11 +215,11 @@ export function AppSidebar({
           })}
         </div>
 
-        {/* Section: Saved Roadmaps */}
+        {/* Section: Study History */}
         {isExpanded && (
           <div className="space-y-1 pt-2 border-t border-slate-100">
             <div className="px-2.5 pb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <span>Saved Roadmaps</span>
+              <span>Study History</span>
               <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200 text-slate-500 font-semibold">
                 {savedPlans.length}
               </span>
@@ -235,7 +227,7 @@ export function AppSidebar({
 
             {savedPlans.length === 0 ? (
               <div className="px-2.5 py-3 text-[11px] text-slate-400 italic">
-                No curricula saved yet.
+                No study history yet.
               </div>
             ) : (
               <div className="space-y-1 max-h-44 overflow-y-auto scrollbar-thin pr-1">

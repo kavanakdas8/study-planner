@@ -29,11 +29,6 @@ const FEATURES = [
     description:
       "Track daily study consistency, time distribution across modules, and completion velocity in real time.",
   },
-  {
-    title: "Multi-Format Export & Sync",
-    description:
-      "Export your roadmap to formatted PDF reports, Markdown checklists, or ICS calendar schedules.",
-  },
 ];
 
 const HOW_IT_WORKS = [
@@ -89,7 +84,7 @@ export function LandingPage({
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {FEATURES.map((feature) => (
                 <div
                   key={feature.title}
