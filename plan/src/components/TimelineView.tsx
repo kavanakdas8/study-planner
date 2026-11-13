@@ -14,6 +14,7 @@ interface TimelineViewProps {
   activeTimerTaskId: string | null;
   searchQuery: string;
   resourceFilter: string;
+  showCompletedTasks?: boolean;
   onEditModule?: (moduleIndex: number) => void;
   onDeleteModule?: (moduleIndex: number) => void;
 }
@@ -26,6 +27,7 @@ export function TimelineView({
   activeTimerTaskId,
   searchQuery,
   resourceFilter,
+  showCompletedTasks = true,
   onEditModule,
   onDeleteModule,
 }: TimelineViewProps) {
@@ -60,7 +62,13 @@ export function TimelineView({
 
       {plan.schedule.map((period, pIdx) => {
         const isCollapsed = collapsedPeriods[pIdx];
-        const filteredTasks = period.tasks.filter(matchesFilter);
+        const filteredTasks = period.tasks.filter((task, tIdx) => {
+          const taskId = `${plan.id}_${pIdx}_${tIdx}`;
+          if (!showCompletedTasks && completedTasksMap[taskId]) {
+            return false;
+          }
+          return matchesFilter(task);
+        });
 
         const periodTotalMinutes = period.tasks.reduce(
           (acc, t) => acc + (t.duration_minutes || 0),

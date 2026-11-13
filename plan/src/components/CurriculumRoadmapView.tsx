@@ -42,6 +42,12 @@ interface CurriculumRoadmapViewProps {
 
 type SubView = "table" | "kanban" | "timeline" | "revisions" | "milestones";
 
+const mapDefaultSubView = (val?: string): SubView => {
+  if (val === "cards") return "kanban";
+  if (val === "timeline") return "timeline";
+  return "table";
+};
+
 export function CurriculumRoadmapView({
   plan,
   completedTasksMap,
@@ -53,7 +59,19 @@ export function CurriculumRoadmapView({
   searchQuery,
   onSearchChange,
 }: CurriculumRoadmapViewProps) {
-  const [activeSubView, setActiveSubView] = useState<SubView>("table");
+  const [activeSubView, setActiveSubView] = useState<SubView>(() =>
+    mapDefaultSubView(userSettings?.general?.defaultDashboardView)
+  );
+  const [prevDefaultDashboardView, setPrevDefaultDashboardView] = useState(
+    userSettings?.general?.defaultDashboardView
+  );
+
+  // Sync activeSubView if default view preference is updated in settings (React state adjustment pattern)
+  if (userSettings?.general?.defaultDashboardView !== prevDefaultDashboardView) {
+    setPrevDefaultDashboardView(userSettings?.general?.defaultDashboardView);
+    setActiveSubView(mapDefaultSubView(userSettings?.general?.defaultDashboardView));
+  }
+
   const [resourceFilter, setResourceFilter] = useState("All");
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
   // Modals state
@@ -686,6 +704,7 @@ export function CurriculumRoadmapView({
           searchQuery={searchQuery}
           resourceFilter={resourceFilter}
           selectedPeriodIndex={selectedPeriodIndex}
+          showCompletedTasks={userSettings?.study?.showCompletedTasks ?? true}
           onClearPeriodFilter={() => setSelectedPeriodIndex(null)}
           onViewAllClick={() => {
             setSelectedPeriodIndex(null);
@@ -707,6 +726,7 @@ export function CurriculumRoadmapView({
           activeTimerTaskId={activeTimerTaskId}
           searchQuery={searchQuery}
           resourceFilter={resourceFilter}
+          showCompletedTasks={userSettings?.study?.showCompletedTasks ?? true}
           onEditModule={handleEditModule}
           onDeleteModule={handleDeleteModule}
         />
@@ -722,6 +742,7 @@ export function CurriculumRoadmapView({
           activeTimerTaskId={activeTimerTaskId}
           searchQuery={searchQuery}
           resourceFilter={resourceFilter}
+          showCompletedTasks={userSettings?.study?.showCompletedTasks ?? true}
           onEditModule={handleEditModule}
           onDeleteModule={handleDeleteModule}
         />

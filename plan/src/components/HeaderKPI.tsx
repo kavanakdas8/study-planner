@@ -7,7 +7,7 @@ import {
   FileDown,
   Loader2,
 } from "lucide-react";
-import { SavedPlan, ActiveTimer } from "@/types/study";
+import { SavedPlan, ActiveTimer, UserSettings } from "@/types/study";
 
 interface HeaderKPIProps {
   plan: SavedPlan;
@@ -21,6 +21,7 @@ interface HeaderKPIProps {
   onExportMarkdown?: () => void;
   selectedPeriodLabel?: string;
   onSelectPeriodLabel?: (label: string) => void;
+  userSettings?: UserSettings;
 }
 
 export function HeaderKPI({
@@ -33,6 +34,7 @@ export function HeaderKPI({
   onExportMarkdown,
   selectedPeriodLabel = "All Periods",
   onSelectPeriodLabel,
+  userSettings,
 }: HeaderKPIProps) {
   const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false);
 
@@ -41,13 +43,25 @@ export function HeaderKPI({
 
   const periodOptions = ["All Periods", ...plan.schedule.map((p) => p.period_label)];
 
-  // Formatted date string for greeting
-  const currentDateFormatted = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  // Formatted date string for greeting respecting user's configured timezone
+  const currentDateFormatted = (() => {
+    try {
+      return new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: userSettings?.general?.timezone || undefined,
+      });
+    } catch {
+      return new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  })();
 
   return (
     <div className="space-y-5">

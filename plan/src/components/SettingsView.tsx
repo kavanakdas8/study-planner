@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { UserSettings, SavedPlan, DifficultyLevel } from "@/types/study";
 import {
   Target,
@@ -19,6 +19,9 @@ import {
   Sparkles,
   BookOpen,
   X,
+  RotateCcw,
+  Loader2,
+  Check,
 } from "lucide-react";
 import { playChime } from "@/lib/utils";
 
@@ -69,6 +72,23 @@ export function SettingsView({
   onSaveCurriculum,
 }: SettingsViewProps) {
   const [activeSection, setActiveSection] = useState<SettingsSection>("learning");
+
+  // Local draft state for user settings (manual save architecture)
+  const [draftSettings, setDraftSettings] = useState<UserSettings>(userSettings);
+  const [prevUserSettings, setPrevUserSettings] = useState<UserSettings>(userSettings);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // Sync draftSettings during render if parent userSettings changes externally
+  if (userSettings !== prevUserSettings) {
+    setPrevUserSettings(userSettings);
+    setDraftSettings(userSettings);
+  }
+
+  // Dirty check: has user modified any settings in this draft?
+  const isSettingsDirty = useMemo(() => {
+    return JSON.stringify(draftSettings) !== JSON.stringify(userSettings);
+  }, [draftSettings, userSettings]);
+
   const [saveToast, setSaveToast] = useState<{ message: string; show: boolean }>({
     message: "",
     show: false,
@@ -87,30 +107,65 @@ export function SettingsView({
 
   const showToast = (message: string) => {
     setSaveToast({ message, show: true });
-    setTimeout(() => setSaveToast({ message: "", show: false }), 2400);
+    setTimeout(() => setSaveToast({ message: "", show: false }), 2800);
   };
 
-  const updateSetting = <T extends keyof UserSettings>(
+  // Update working draft settings locally without persisting
+  const updateDraftSetting = <T extends keyof UserSettings>(
     category: T,
     updates: Partial<UserSettings[T]>
   ) => {
-    const updated = {
-      ...userSettings,
+    setDraftSettings((prev) => ({
+      ...prev,
       [category]: {
-        ...userSettings[category],
+        ...prev[category],
         ...updates,
       },
-    };
-    onUpdateSettings(updated);
-    showToast("Setting updated");
+    }));
   };
+
+  // Explicit Save Settings Handler
+  const handleSaveAllSettings = useCallback(() => {
+    if (isSavingSettings || !isSettingsDirty) return;
+    setIsSavingSettings(true);
+    playChime("complete");
+
+    // Persist to parent application state
+    onUpdateSettings(draftSettings);
+
+    setTimeout(() => {
+      setIsSavingSettings(false);
+      showToast("Settings saved and reflected across the application!");
+    }, 150);
+  }, [isSavingSettings, isSettingsDirty, onUpdateSettings, draftSettings]);
+
+  // Discard Working Draft Settings
+  const handleDiscardSettings = () => {
+    setDraftSettings(JSON.parse(JSON.stringify(userSettings)));
+    playChime("click");
+    showToast("Settings changes discarded.");
+  };
+
+  // Keyboard shortcut listener: Cmd/Ctrl + S in Settings saves settings
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        if (isSettingsDirty && !isSavingSettings) {
+          e.preventDefault();
+          handleSaveAllSettings();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSettingsDirty, isSavingSettings, handleSaveAllSettings]);
 
   const handleTestChime = () => {
     playChime("complete");
     showToast("Harmonic audio chime played");
   };
 
-  // Rename active curriculum
+  // Rename active curriculum (updates draft curriculum)
   const handleRenameCurriculum = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = renamedTitle.trim();
@@ -129,7 +184,7 @@ export function SettingsView({
     showToast("Curriculum title updated in draft. Click Save to persist.");
   };
 
-  // Toggle archive status
+  // Toggle archive status (updates draft curriculum)
   const handleToggleArchive = () => {
     if (!activePlan || !onUpdateDraftPlan) return;
     const nextArchived = !activePlan.isArchived;
@@ -166,7 +221,7 @@ export function SettingsView({
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Header Row */}
+      {/* Header Row with Explicit Manual Save Actions */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -179,17 +234,88 @@ export function SettingsView({
             Settings
           </h1>
           <p className="text-xs text-slate-500 max-w-xl">
-            Configure learning targets, study schedules, appearance, and curriculum management.
+            Configure learning targets, study schedules, appearance, and curriculum management. Changes apply when saved.
           </p>
         </div>
 
-        {saveToast.show && (
-          <div className="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fade-in shadow-2xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>{saveToast.message}</span>
-          </div>
-        )}
+        {/* Manual Save Actions Toolbar */}
+        <div className="flex items-center gap-3 shrink-0">
+          {saveToast.show && (
+            <div className="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fade-in shadow-2xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>{saveToast.message}</span>
+            </div>
+          )}
+
+          {isSettingsDirty ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDiscardSettings}
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Discard</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAllSettings}
+                disabled={isSavingSettings}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95"
+              >
+                {isSavingSettings ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>Save Settings</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 text-xs font-medium">
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <span>All settings saved</span>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Unsaved Changes Banner for Settings */}
+      {isSettingsDirty && (
+        <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs animate-fade-in text-xs">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <div>
+              <span className="font-bold text-amber-900">Unsaved Settings:</span>
+              <span className="ml-1 text-amber-800">
+                You have modified your preferences. Click <strong>Save Settings</strong> to apply them to your workspace.
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <button
+              type="button"
+              onClick={handleDiscardSettings}
+              className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100/60 text-slate-700 text-[11px] font-semibold border border-amber-200 transition cursor-pointer"
+            >
+              Discard Changes
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAllSettings}
+              disabled={isSavingSettings}
+              className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer shadow-xs"
+            >
+              {isSavingSettings ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Save className="w-3 h-3" />
+              )}
+              <span>Save &amp; Apply</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Settings Navigation & Content Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
@@ -241,19 +367,19 @@ export function SettingsView({
                     Default Learning Level
                   </label>
                   <p className="text-[11px] text-slate-500 mb-1">
-                    Pre-selected experience level for newly synthesized curricula.
+                    Pre-selected experience level for newly synthesized curricula and modal generation.
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {(["Beginner", "Intermediate", "Advanced"] as DifficultyLevel[]).map(
                       (lvl) => {
                         const isSelected =
-                          userSettings.study.preferredDifficulty === lvl;
+                          draftSettings.study.preferredDifficulty === lvl;
                         return (
                           <button
                             type="button"
                             key={lvl}
                             onClick={() =>
-                              updateSetting("study", {
+                              updateDraftSetting("study", {
                                 preferredDifficulty: lvl,
                               })
                             }
@@ -282,16 +408,16 @@ export function SettingsView({
                       step={0.5}
                       min={0.5}
                       max={12}
-                      value={userSettings.study.dailyStudyGoalHours}
+                      value={draftSettings.study.dailyStudyGoalHours}
                       onChange={(e) =>
-                        updateSetting("study", {
+                        updateDraftSetting("study", {
                           dailyStudyGoalHours: Number(e.target.value),
                         })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white text-xs"
                     />
                     <p className="text-[11px] text-slate-400">
-                      Recommended target: 1.0 – 3.0 hours/day
+                      Recommended target: 1.0 – 3.0 hours/day (Reflected on Dashboard &amp; Analytics)
                     </p>
                   </div>
 
@@ -305,9 +431,9 @@ export function SettingsView({
                       step={5}
                       min={15}
                       max={180}
-                      value={userSettings.study.defaultTaskDurationMinutes}
+                      value={draftSettings.study.defaultTaskDurationMinutes}
                       onChange={(e) =>
-                        updateSetting("study", {
+                        updateDraftSetting("study", {
                           defaultTaskDurationMinutes: Number(e.target.value),
                         })
                       }
@@ -326,7 +452,7 @@ export function SettingsView({
                       Weekly Study Goal (Hours)
                     </label>
                     <span className="font-mono text-xs font-bold text-emerald-700">
-                      {userSettings.study.weeklyStudyTargetHours} hrs / week
+                      {draftSettings.study.weeklyStudyTargetHours} hrs / week
                     </span>
                   </div>
                   <input
@@ -334,9 +460,9 @@ export function SettingsView({
                     min={2}
                     max={50}
                     step={1}
-                    value={userSettings.study.weeklyStudyTargetHours}
+                    value={draftSettings.study.weeklyStudyTargetHours}
                     onChange={(e) =>
-                      updateSetting("study", {
+                      updateDraftSetting("study", {
                         weeklyStudyTargetHours: Number(e.target.value),
                       })
                     }
@@ -348,6 +474,9 @@ export function SettingsView({
                     <span>30 hrs</span>
                     <span>50 hrs</span>
                   </div>
+                  <p className="text-[11px] text-slate-400">
+                    Reflected on the Analytics progress charts and weekly velocity tracker.
+                  </p>
                 </div>
               </div>
             </div>
@@ -372,22 +501,22 @@ export function SettingsView({
                     Select Study Days (Monday – Sunday)
                   </label>
                   <p className="text-[11px] text-slate-500">
-                    Days on which tasks and daily study hours will be scheduled.
+                    Days on which tasks and daily study hours will be scheduled. Reflected on Today&apos;s Focus Schedule.
                   </p>
                   <div className="flex items-center gap-2 flex-wrap pt-1">
                     {dayNames.map(({ label, idx }) => {
                       const isSelected =
-                        userSettings.study.preferredStudyDays.includes(idx);
+                        draftSettings.study.preferredStudyDays.includes(idx);
                       return (
                         <button
                           type="button"
                           key={label}
                           onClick={() => {
-                            const current = userSettings.study.preferredStudyDays;
+                            const current = draftSettings.study.preferredStudyDays;
                             const next = isSelected
                               ? current.filter((d) => d !== idx)
                               : [...current, idx].sort();
-                            updateSetting("study", { preferredStudyDays: next });
+                            updateDraftSetting("study", { preferredStudyDays: next });
                           }}
                           className={`px-3.5 py-2 rounded-lg font-mono text-xs font-semibold transition cursor-pointer border ${
                             isSelected
@@ -410,14 +539,17 @@ export function SettingsView({
                     </label>
                     <input
                       type="time"
-                      value={userSettings.study.studyStartTime || "09:00"}
+                      value={draftSettings.study.studyStartTime || "09:00"}
                       onChange={(e) =>
-                        updateSetting("study", {
+                        updateDraftSetting("study", {
                           studyStartTime: e.target.value,
                         })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white text-xs font-mono"
                     />
+                    <p className="text-[11px] text-slate-400">
+                      Displayed on your daily study schedule queue.
+                    </p>
                   </div>
 
                   {/* Timezone */}
@@ -427,13 +559,13 @@ export function SettingsView({
                     </label>
                     <select
                       value={
-                        userSettings.general.timezone ||
+                        draftSettings.general.timezone ||
                         (typeof Intl !== "undefined"
                           ? Intl.DateTimeFormat().resolvedOptions().timeZone
                           : "UTC")
                       }
                       onChange={(e) =>
-                        updateSetting("general", {
+                        updateDraftSetting("general", {
                           timezone: e.target.value,
                         })
                       }
@@ -445,6 +577,9 @@ export function SettingsView({
                         </option>
                       ))}
                     </select>
+                    <p className="text-[11px] text-slate-400">
+                      Calibrates date timestamps and greeting displays.
+                    </p>
                   </div>
                 </div>
 
@@ -458,14 +593,17 @@ export function SettingsView({
                       type="number"
                       min={1}
                       max={30}
-                      value={userSettings.timer.shortBreakMinutes}
+                      value={draftSettings.timer.shortBreakMinutes}
                       onChange={(e) =>
-                        updateSetting("timer", {
+                        updateDraftSetting("timer", {
                           shortBreakMinutes: Number(e.target.value),
                         })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white text-xs"
                     />
+                    <p className="text-[11px] text-slate-400">
+                      Standard pause interval after regular focus blocks
+                    </p>
                   </div>
 
                   <div className="space-y-1.5">
@@ -476,14 +614,17 @@ export function SettingsView({
                       type="number"
                       min={5}
                       max={60}
-                      value={userSettings.timer.longBreakMinutes}
+                      value={draftSettings.timer.longBreakMinutes}
                       onChange={(e) =>
-                        updateSetting("timer", {
+                        updateDraftSetting("timer", {
                           longBreakMinutes: Number(e.target.value),
                         })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white text-xs"
                     />
+                    <p className="text-[11px] text-slate-400">
+                      Extended rest interval after completed milestones
+                    </p>
                   </div>
                 </div>
               </div>
@@ -506,32 +647,28 @@ export function SettingsView({
                   <label className="block text-slate-700 font-semibold">
                     Interface Theme
                   </label>
+                  <p className="text-[11px] text-slate-500">
+                    Choose between Light, Dark, or automatically following your operating system.
+                  </p>
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { id: "light", label: "Light", desc: "Clean daylight UI" },
                       { id: "dark", label: "Dark", desc: "Dimmed night UI" },
                       { id: "system", label: "System", desc: "Follow OS setting" },
                     ].map((t) => {
-                      const isSelected = userSettings.appearance.theme === t.id;
+                      const isSelected = draftSettings.appearance.theme === t.id;
                       return (
                         <button
                           type="button"
                           key={t.id}
                           onClick={() => {
-                            updateSetting("appearance", {
+                            updateDraftSetting("appearance", {
                               theme: t.id as "light" | "dark" | "system",
                             });
-                            if (typeof document !== "undefined") {
-                              if (t.id === "dark") {
-                                document.documentElement.classList.add("dark");
-                              } else {
-                                document.documentElement.classList.remove("dark");
-                              }
-                            }
                           }}
                           className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
                             isSelected
-                              ? "bg-emerald-50 border-emerald-500 text-emerald-950 shadow-2xs"
+                              ? "bg-emerald-50 border-emerald-500 text-emerald-950 shadow-2xs font-semibold"
                               : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
                           }`}
                         >
@@ -550,6 +687,9 @@ export function SettingsView({
                   <label className="block text-slate-700 font-semibold">
                     Brand Accent Colour
                   </label>
+                  <p className="text-[11px] text-slate-500">
+                    Controls buttons, active pills, indicators, and primary highlights across the app.
+                  </p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {[
                       { id: "emerald", label: "Emerald Green", hex: "#059669" },
@@ -558,13 +698,13 @@ export function SettingsView({
                       { id: "rose", label: "Rose Red", hex: "#dc2626" },
                     ].map((accent) => {
                       const isSelected =
-                        userSettings.appearance.accentColor === accent.id;
+                        draftSettings.appearance.accentColor === accent.id;
                       return (
                         <button
                           type="button"
                           key={accent.id}
                           onClick={() =>
-                            updateSetting("appearance", {
+                            updateDraftSetting("appearance", {
                               accentColor: accent.id as
                                 | "emerald"
                                 | "indigo"
@@ -574,7 +714,7 @@ export function SettingsView({
                           }
                           className={`p-2.5 rounded-xl border flex items-center gap-2.5 transition cursor-pointer ${
                             isSelected
-                              ? "bg-white border-slate-900 shadow-2xs"
+                              ? "bg-white border-slate-900 shadow-2xs font-semibold"
                               : "bg-slate-50 border-slate-200 hover:bg-slate-100"
                           }`}
                         >
@@ -596,6 +736,9 @@ export function SettingsView({
                   <label className="block text-slate-700 font-semibold">
                     Layout Density
                   </label>
+                  <p className="text-[11px] text-slate-500">
+                    Configure screen spacing and table padding.
+                  </p>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       {
@@ -610,25 +753,19 @@ export function SettingsView({
                       },
                     ].map((d) => {
                       const isSelected =
-                        userSettings.appearance.layoutDensity === d.id;
+                        draftSettings.appearance.layoutDensity === d.id;
                       return (
                         <button
                           type="button"
                           key={d.id}
                           onClick={() => {
-                            updateSetting("appearance", {
+                            updateDraftSetting("appearance", {
                               layoutDensity: d.id as "comfortable" | "compact",
                             });
-                            if (typeof document !== "undefined") {
-                              document.documentElement.setAttribute(
-                                "data-density",
-                                d.id
-                              );
-                            }
                           }}
                           className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
                             isSelected
-                              ? "bg-emerald-50 border-emerald-500 text-emerald-950 shadow-2xs"
+                              ? "bg-emerald-50 border-emerald-500 text-emerald-950 shadow-2xs font-semibold"
                               : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
                           }`}
                         >
@@ -664,23 +801,23 @@ export function SettingsView({
                     Default Dashboard View
                   </label>
                   <p className="text-[11px] text-slate-500 mb-1">
-                    Select which view opens by default when loading your curriculum.
+                    Select which view opens by default when loading your curriculum roadmap.
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                      { id: "roadmap", label: "Roadmap" },
-                      { id: "cards", label: "Cards" },
+                      { id: "roadmap", label: "Roadmap (Table)" },
+                      { id: "cards", label: "Cards (Kanban)" },
                       { id: "timeline", label: "Timeline" },
-                      { id: "table", label: "Table" },
+                      { id: "table", label: "Table Stream" },
                     ].map((v) => {
                       const isSelected =
-                        userSettings.general.defaultDashboardView === v.id;
+                        draftSettings.general.defaultDashboardView === v.id;
                       return (
                         <button
                           type="button"
                           key={v.id}
                           onClick={() =>
-                            updateSetting("general", {
+                            updateDraftSetting("general", {
                               defaultDashboardView: v.id as
                                 | "roadmap"
                                 | "cards"
@@ -709,14 +846,14 @@ export function SettingsView({
                         Show Completed Tasks in Workspace
                       </span>
                       <span className="text-slate-500 text-[11px]">
-                        Keep completed tasks visible in schedules and table views.
+                        When enabled, completed tasks remain visible in schedules and table streams. When disabled, completed tasks are hidden.
                       </span>
                     </div>
                     <input
                       type="checkbox"
-                      checked={userSettings.study.showCompletedTasks ?? true}
+                      checked={draftSettings.study.showCompletedTasks ?? true}
                       onChange={(e) =>
-                        updateSetting("study", {
+                        updateDraftSetting("study", {
                           showCompletedTasks: e.target.checked,
                         })
                       }
@@ -730,16 +867,19 @@ export function SettingsView({
                   <label className="block text-slate-700 font-semibold">
                     Default Focus Timer Duration (Minutes)
                   </label>
+                  <p className="text-[11px] text-slate-500 mb-1">
+                    Pre-set countdown length when starting a focus session on any task.
+                  </p>
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     {[15, 20, 25, 30, 45, 60].map((mins) => {
                       const isSelected =
-                        userSettings.timer.pomodoroDurationMinutes === mins;
+                        draftSettings.timer.pomodoroDurationMinutes === mins;
                       return (
                         <button
                           type="button"
                           key={mins}
                           onClick={() =>
-                            updateSetting("timer", {
+                            updateDraftSetting("timer", {
                               pomodoroDurationMinutes: mins,
                             })
                           }
@@ -783,9 +923,9 @@ export function SettingsView({
                     </div>
                     <input
                       type="checkbox"
-                      checked={userSettings.timer.autoStartBreaks}
+                      checked={draftSettings.timer.autoStartBreaks}
                       onChange={(e) =>
-                        updateSetting("timer", {
+                        updateDraftSetting("timer", {
                           autoStartBreaks: e.target.checked,
                         })
                       }
@@ -804,9 +944,9 @@ export function SettingsView({
                     </div>
                     <input
                       type="checkbox"
-                      checked={userSettings.timer.soundNotifications}
+                      checked={draftSettings.timer.soundNotifications}
                       onChange={(e) =>
-                        updateSetting("timer", {
+                        updateDraftSetting("timer", {
                           soundNotifications: e.target.checked,
                         })
                       }
@@ -837,7 +977,7 @@ export function SettingsView({
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    <span>Save Draft Changes</span>
+                    <span>Save Draft Curriculum</span>
                   </button>
                 )}
               </div>

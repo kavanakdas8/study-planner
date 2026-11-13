@@ -274,7 +274,14 @@ export default function Home() {
         }
 
         if (storedSettings) {
-          setUserSettings(JSON.parse(storedSettings));
+          const parsed = JSON.parse(storedSettings);
+          if (parsed.appearance) {
+            parsed.appearance.theme = "light";
+          }
+          setUserSettings(parsed);
+        }
+        if (typeof document !== "undefined") {
+          document.documentElement.classList.remove("dark");
         }
 
         if (storedOnboarding) {
@@ -346,6 +353,23 @@ export default function Home() {
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(userSettings));
     } catch {}
   }, [userSettings, mounted]);
+
+  // Reflect Appearance Settings (Accent Color, Layout Density, Theme)
+  useEffect(() => {
+    if (!mounted) return;
+    const accent = userSettings.appearance?.accentColor || "emerald";
+    const density = userSettings.appearance?.layoutDensity || "comfortable";
+    const root = document.documentElement;
+
+    // Apply Accent Colour
+    root.setAttribute("data-accent", accent);
+
+    // Apply Layout Density
+    root.setAttribute("data-density", density);
+
+    // Always ensure dark class is removed to preserve clean, crisp daylight UI
+    root.classList.remove("dark");
+  }, [userSettings.appearance, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -1221,6 +1245,7 @@ export default function Home() {
                     ? activePlan.schedule[selectedPeriodIndex]?.period_label
                     : "All Periods"
                 }
+                userSettings={userSettings}
                 onSelectPeriodLabel={(label) => {
                   if (label === "All Periods") {
                     setSelectedPeriodIndex(null);
@@ -1233,10 +1258,32 @@ export default function Home() {
 
               {/* Today's Focus Schedule */}
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-                        Today&apos;s Focus Schedule
-                      </h2>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="space-y-0.5">
+                        <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                          Today&apos;s Focus Schedule
+                        </h2>
+                        <p className="text-[11px] text-slate-500">
+                          Target: {userSettings.study?.dailyStudyGoalHours || 2}h daily • Weekly: {userSettings.study?.weeklyStudyTargetHours || 14}h target
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {(() => {
+                          const todayIdx = new Date().getDay();
+                          const isScheduledDay = (userSettings.study?.preferredStudyDays || [1, 2, 3, 4, 5]).includes(todayIdx);
+                          const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                          return isScheduledDay ? (
+                            <span className="text-[10px] font-medium font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Scheduled Study Day • Window: {userSettings.study?.studyStartTime || "09:00"}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium font-mono text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">
+                              Rest Day ({dayNames[todayIdx]}) • Self-Paced
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     {todayPriorityTask ? (
@@ -1378,6 +1425,7 @@ export default function Home() {
           handleToggleTask(taskId);
         }}
         onClose={() => setActiveTimer(null)}
+        userSettings={userSettings}
       />
 
       {/* Command Palette Creation Modal */}
@@ -1387,6 +1435,8 @@ export default function Home() {
         onGenerate={handleGeneratePlan}
         loading={loading}
         error={error}
+        defaultDifficulty={userSettings.study?.preferredDifficulty}
+        defaultDailyHours={userSettings.study?.dailyStudyGoalHours}
       />
 
       {/* Slide-out Plan History Drawer */}

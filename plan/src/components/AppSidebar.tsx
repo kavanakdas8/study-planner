@@ -169,8 +169,8 @@ export function AppSidebar({
                 onClick={() => handleNavClick(item.id)}
                 title={item.label}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${isActive
-                    ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+                  ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
                   } ${!isExpanded ? "justify-center px-0" : ""}`}
               >
                 <Icon
@@ -201,8 +201,8 @@ export function AppSidebar({
                 onClick={() => handleNavClick(item.id)}
                 title={item.label}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${isActive
-                    ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+                  ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
                   } ${!isExpanded ? "justify-center px-0" : ""}`}
               >
                 <Icon
@@ -241,8 +241,8 @@ export function AppSidebar({
                         onCloseMobile();
                       }}
                       className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition cursor-pointer border ${isActive
-                          ? "bg-emerald-50/60 text-emerald-800 border-emerald-200 font-semibold shadow-xs"
-                          : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                        ? "bg-emerald-50/60 text-emerald-800 border-emerald-200 font-semibold shadow-xs"
+                        : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                         }`}
                     >
                       <div className="flex items-center gap-2 truncate pr-2">
