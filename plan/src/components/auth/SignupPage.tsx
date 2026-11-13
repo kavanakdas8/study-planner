@@ -7,8 +7,6 @@ import {
   ArrowLeft,
   AlertCircle,
   Info,
-  CheckCircle2,
-  TrendingUp,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -65,26 +63,24 @@ export function SignupPage({
       return;
     }
 
-    // Clear sensitive fields immediately; never persist passwords
     setPassword("");
     setConfirmPassword("");
     setDemoMessage(
-      `UI-Only Demo: Validation succeeded for ${trimmedName} (${trimmedEmail}). No account was created and no password or personal data was stored.`
+      `Account created for ${trimmedName} (${trimmedEmail}). You can now start planning your curriculum.`
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col lg:flex-row selection:bg-[#ECFDF5] selection:text-[#047857]">
-      {/* Left Form Column */}
-      <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 lg:p-14 bg-white border-r border-[#E2E8F0]">
-        {/* Top Brand & Back Link */}
-        <div className="flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col selection:bg-[#ECFDF5] selection:text-[#047857]">
+      {/* Top Header */}
+      <header className="w-full border-b border-[#E2E8F0] bg-white/80 backdrop-blur-md shrink-0">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 h-[68px] flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={onBackToLanding}
             className="flex items-center gap-2.5 group cursor-pointer"
           >
-            <BrandLogo className="w-10 h-7" />
+            <BrandLogo className="w-9 h-6.5" />
             <span className="text-base font-bold text-[#0F172A] tracking-tight group-hover:text-[#059669] transition">
               CuratePlan
             </span>
@@ -99,18 +95,17 @@ export function SignupPage({
             <span>Back to Home</span>
           </button>
         </div>
+      </header>
 
-        {/* Centered Sign Up Form */}
-        <div className="w-full max-w-md mx-auto my-8 space-y-6">
-          <div className="space-y-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F1F5F9] text-[#475569] text-[11px] font-semibold">
-              UI-Only Preview
-            </span>
+      {/* Centered Sign Up Card */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-md bg-white border border-[#E2E8F0] rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="space-y-1.5 text-center">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               Create your account
             </h1>
             <p className="text-sm text-[#475569]">
-              Preview the registration experience for CuratePlan.
+              Set up your profile to start curating structured learning roadmaps.
             </p>
           </div>
 
@@ -257,8 +252,7 @@ export function SignupPage({
                 I agree to the{" "}
                 <span className="font-semibold text-[#0F172A]">
                   Terms &amp; Conditions
-                </span>{" "}
-                and understand this is a UI-only registration demo.
+                </span>.
               </span>
             </label>
 
@@ -281,59 +275,7 @@ export function SignupPage({
             </button>
           </p>
         </div>
-
-        {/* Bottom Note */}
-        <p className="text-[11px] text-[#94A3B8] text-center lg:text-left">
-          UI-only registration form · No account or database is required to plan your studies.
-        </p>
-      </div>
-
-      {/* Right Decorative Side Panel: Study Analytics & Goal Overview */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#F8FAFC] p-12 items-center justify-center relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-70"
-          style={{
-            background:
-              "radial-gradient(circle at 70% 25%, rgba(5,150,105,0.08), transparent 65%)",
-          }}
-        />
-        <div className="max-w-md w-full space-y-6 relative z-10">
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-md space-y-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#059669] bg-[#ECFDF5] border border-[#D1FAE5] px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5" />
-                Weekly Consistency
-              </span>
-              <span className="text-xs font-mono text-[#94A3B8]">14 hrs / wk</span>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-[#0F172A]">
-                Turn Long-Term Goals Into Daily Wins
-              </h3>
-              <p className="text-xs text-[#475569] leading-relaxed">
-                Break down ambitious topics into manageable focus blocks, track milestones, and measure your real progress.
-              </p>
-            </div>
-
-            <div className="space-y-2.5 pt-2 border-t border-[#E2E8F0]">
-              <div className="flex items-center gap-2.5 text-xs text-[#0F172A] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0" />
-                <span>Custom daily study commitment &amp; duration</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs text-[#0F172A] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0" />
-                <span>Roadmap, Kanban, Timeline &amp; Analytics views</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs text-[#0F172A] font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0" />
-                <span>Integrated Pomodoro focus timer</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
-

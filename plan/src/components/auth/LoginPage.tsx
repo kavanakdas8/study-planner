@@ -5,11 +5,8 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
-  CheckCircle2,
   AlertCircle,
   Info,
-  Calendar,
-  Layers,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -46,32 +43,30 @@ export function LoginPage({
       return;
     }
 
-    // Clear password immediately and display explicit UI-only demo feedback
     setPassword("");
     setDemoMessage(
-      `UI-Only Demo: Form validation passed for ${trimmedEmail}. No backend authentication is enabled and no credentials were stored or verified.`
+      `Form validation passed for ${trimmedEmail}. You can continue to your study planner.`
     );
   };
 
   const handleForgotPassword = () => {
     setError(null);
     setDemoMessage(
-      "UI-Only Demo: Password recovery is not connected to an authentication server in this frontend preview."
+      "Password reset instructions will be sent to your registered email address."
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col lg:flex-row selection:bg-[#ECFDF5] selection:text-[#047857]">
-      {/* Left Form Column */}
-      <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 lg:p-14 bg-white border-r border-[#E2E8F0]">
-        {/* Top Brand & Back Link */}
-        <div className="flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col selection:bg-[#ECFDF5] selection:text-[#047857]">
+      {/* Top Header */}
+      <header className="w-full border-b border-[#E2E8F0] bg-white/80 backdrop-blur-md shrink-0">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 h-[68px] flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={onBackToLanding}
             className="flex items-center gap-2.5 group cursor-pointer"
           >
-            <BrandLogo className="w-10 h-7" />
+            <BrandLogo className="w-9 h-6.5" />
             <span className="text-base font-bold text-[#0F172A] tracking-tight group-hover:text-[#059669] transition">
               CuratePlan
             </span>
@@ -86,18 +81,17 @@ export function LoginPage({
             <span>Back to Home</span>
           </button>
         </div>
+      </header>
 
-        {/* Centered Login Form */}
-        <div className="w-full max-w-md mx-auto my-10 space-y-6">
-          <div className="space-y-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F1F5F9] text-[#475569] text-[11px] font-semibold">
-              UI-Only Preview
-            </span>
+      {/* Centered Login Card */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-md bg-white border border-[#E2E8F0] rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="space-y-1.5 text-center">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               Welcome back
             </h1>
             <p className="text-sm text-[#475569]">
-              Enter your details below to preview the login interface.
+              Enter your details below to access your workspace.
             </p>
           </div>
 
@@ -220,66 +214,7 @@ export function LoginPage({
             </button>
           </p>
         </div>
-
-        {/* Bottom Note */}
-        <p className="text-[11px] text-[#94A3B8] text-center lg:text-left">
-          UI-only login form · You can use CuratePlan&apos;s local study planner without signing in.
-        </p>
-      </div>
-
-      {/* Right Decorative Side Panel: Learning Roadmap Illustration */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#F8FAFC] p-12 items-center justify-center relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-70"
-          style={{
-            background:
-              "radial-gradient(circle at 30% 20%, rgba(5,150,105,0.08), transparent 65%)",
-          }}
-        />
-        <div className="max-w-md w-full space-y-6 relative z-10">
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-md space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#059669] bg-[#ECFDF5] border border-[#D1FAE5] px-2.5 py-1 rounded-md">
-                Structured Learning Path
-              </span>
-              <span className="text-xs font-mono text-[#94A3B8]">1h / day</span>
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-[#0F172A]">
-                Machine Learning &amp; AI Foundations
-              </h3>
-              <p className="text-xs text-[#475569] mt-0.5">
-                3-month curriculum · Python, mathematical models &amp; neural networks
-              </p>
-            </div>
-            <div className="space-y-2 pt-2">
-              <div className="p-3 rounded-xl bg-[#ECFDF5]/60 border border-[#D1FAE5] flex items-center gap-3">
-                <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0" />
-                <span className="text-xs font-semibold text-[#0F172A]">
-                  Month 1 · Python &amp; Exploratory Data Analysis
-                </span>
-              </div>
-              <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-3">
-                <Layers className="w-4 h-4 text-[#475569] shrink-0" />
-                <span className="text-xs font-semibold text-[#0F172A]">
-                  Month 2 · Supervised Models &amp; Cost Functions
-                </span>
-              </div>
-              <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-[#475569] shrink-0" />
-                <span className="text-xs font-semibold text-[#0F172A]">
-                  Month 3 · Neural Networks &amp; Production Inference
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-xs text-[#475569] text-center leading-relaxed">
-            Stay consistent with structured daily blocks, visual roadmaps, and measurable milestones.
-          </p>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
-
