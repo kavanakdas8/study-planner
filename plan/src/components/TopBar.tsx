@@ -8,7 +8,6 @@ import {
   MoreVertical,
   Bell,
   ChevronRight,
-  History,
   Info,
 } from "lucide-react";
 import { SavedPlan } from "@/types/study";
@@ -124,11 +123,8 @@ export function TopBar({
 
           {notificationsOpen && (
             <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs text-slate-700 z-50 animate-fade-in">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="pb-2 border-b border-slate-100">
                 <span className="font-semibold text-slate-900">Activity & Alerts</span>
-                <span className="text-[10px] font-mono font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                  Active
-                </span>
               </div>
               <div className="py-2 space-y-2">
                 <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
@@ -172,9 +168,8 @@ export function TopBar({
                     setDropdownOpen(false);
                     onOpenHistoryModal();
                   }}
-                  className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700 hover:text-slate-900 transition cursor-pointer"
+                  className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center text-slate-700 hover:text-slate-900 transition cursor-pointer"
                 >
-                  <History className="w-3.5 h-3.5 text-slate-400" />
                   <span>Study History</span>
                 </button>
               )}

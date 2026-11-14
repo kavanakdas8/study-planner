@@ -2,9 +2,7 @@
 
 import React, { useState } from "react";
 import {
-  History,
   X,
-  Plus,
   Trash2,
   Calendar,
   Clock,
@@ -25,7 +23,6 @@ interface PlanHistorySidebarProps {
   onDeletePlan: (planId: string) => void;
   onRenamePlan?: (planId: string, newSubject: string) => void;
   onToggleArchivePlan?: (planId: string) => void;
-  onOpenNewPlanModal: () => void;
   completedTasksMap: Record<string, boolean>;
 }
 
@@ -38,7 +35,6 @@ export function PlanHistorySidebar({
   onDeletePlan,
   onRenamePlan,
   onToggleArchivePlan,
-  onOpenNewPlanModal,
   completedTasksMap,
 }: PlanHistorySidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -114,31 +110,13 @@ export function PlanHistorySidebar({
       >
         {/* Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-emerald-600" />
-            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Study History</h2>
-          </div>
+          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Study History</h2>
           <button
             type="button"
             onClick={onClose}
             className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
           >
             <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* New Plan Action */}
-        <div className="p-3 border-b border-slate-100">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onOpenNewPlanModal();
-            }}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span className="font-semibold">Create New Curriculum</span>
           </button>
         </div>
 

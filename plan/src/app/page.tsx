@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings, AppViewMode, OnboardingSelection } from "@/types/study";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
 import { HeaderKPI } from "@/components/HeaderKPI";
 import { FocusTimer } from "@/components/FocusTimer";
-import { CreationModal } from "@/components/CreationModal";
 import { PlanHistorySidebar } from "@/components/PlanHistorySidebar";
 import { EmptyStateHero } from "@/components/EmptyStateHero";
 import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
@@ -170,6 +170,7 @@ const DEFAULT_COMPLETED_SEED: Record<string, boolean> = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   // App Shell Navigation State: default to collapsed (only logos shown on open)
@@ -189,7 +190,6 @@ export default function Home() {
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
 
   // Drawers & Modals
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
 
@@ -198,13 +198,11 @@ export default function Home() {
 
   // Landing & Onboarding Flow State
   const [viewMode, setViewMode] = useState<AppViewMode>("landing");
+  const [returnViewMode, setReturnViewMode] = useState<"landing" | "dashboard">("landing");
+  const [createPlanInitialSelection, setCreatePlanInitialSelection] = useState<OnboardingSelection | null>(null);
   const [onboardingSelection, setOnboardingSelection] = useState<OnboardingSelection | null>(null);
   const [isOnboardingGenerating, setIsOnboardingGenerating] = useState(false);
   const [onboardingGenerationError, setOnboardingGenerationError] = useState<string | null>(null);
-
-  // Network State
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   // Export PDF State
   const [isExportingPDF, setIsExportingPDF] = useState(false);
@@ -387,14 +385,33 @@ export default function Home() {
     } catch { }
   }, [onboardingSelection, mounted]);
 
+  // Open Create Plan UI (matching "Build My Learning Plan")
+  const handleOpenCreatePlan = React.useCallback(
+    (initial?: OnboardingSelection | null) => {
+      setOnboardingGenerationError(null);
+      if (initial) {
+        try {
+          localStorage.setItem(STORAGE_KEY_ONBOARDING, JSON.stringify(initial));
+        } catch { }
+      } else {
+        try {
+          localStorage.removeItem(STORAGE_KEY_ONBOARDING);
+        } catch { }
+      }
+      setCreatePlanInitialSelection(initial || null);
+      setReturnViewMode(savedPlans.length > 0 ? "dashboard" : "landing");
+      router.push("/create-plan");
+    },
+    [savedPlans.length, router]
+  );
+
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K -> Open creation modal
+      // Cmd/Ctrl + K -> Create Plan
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setError("");
-        setIsModalOpen((prev) => !prev);
+        handleOpenCreatePlan();
         return;
       }
 
@@ -420,7 +437,7 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [handleOpenCreatePlan]);
 
   // Active Plan Resolution
   const activePlan = useMemo(() => {
@@ -481,54 +498,6 @@ export default function Home() {
   // Today's priority task
   const todayPriorityTask = pendingTasksList[0] || null;
   const upcomingTasksSlice = pendingTasksList.slice(1, 5);
-
-  // API Generate Plan Handler
-  const handleGeneratePlan = async (payload: {
-    topic: string;
-    timeframe: string;
-    daily_hours: number;
-    experience_level: string;
-  }) => {
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch("http://127.0.0.1:8000/api/generate-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => null);
-        throw new Error(
-          errJson?.detail || `Server returned error (${res.status}). Ensure backend is active.`
-        );
-      }
-
-      const planData: StudyPlan = await res.json();
-
-      const newSavedPlan: SavedPlan = {
-        ...planData,
-        id: `plan_${Date.now()}`,
-        createdAt: Date.now(),
-        daily_hours: payload.daily_hours,
-        experience_level: payload.experience_level,
-      };
-
-      const normalized = normalizePlanToCurriculum(newSavedPlan);
-      setSavedPlans((prev) => [normalized, ...prev]);
-      setActivePlanId(normalized.id);
-      setSelectedPeriodIndex(null);
-      setIsModalOpen(false);
-      playChime("complete");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "An unexpected network error occurred.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Generate curriculum with AI & transition into the CuratePlan dashboard
   const handleOnboardingStartLearning = async (selection: OnboardingSelection) => {
@@ -781,9 +750,9 @@ export default function Home() {
   if (viewMode === "landing") {
     return (
       <LandingPage
-        onBuildPlan={() => setViewMode("course-selection")}
-        onNavigateLogin={() => setViewMode("login")}
-        onNavigateSignup={() => setViewMode("signup")}
+        onBuildPlan={() => router.push("/create-plan")}
+        onNavigateLogin={() => router.push("/login")}
+        onNavigateSignup={() => router.push("/signup")}
         onOpenDashboard={() => setViewMode("dashboard")}
         hasExistingWorkspace={savedPlans.length > 0}
       />
@@ -797,9 +766,22 @@ export default function Home() {
         onStartLearning={handleOnboardingStartLearning}
         onBackToLanding={() => {
           setOnboardingGenerationError(null);
-          setViewMode("landing");
+          if (typeof window !== "undefined") {
+            const stateIdx = window.history.state?.idx;
+            const hasInternalHistory =
+              typeof stateIdx === "number" ? stateIdx > 0 : window.history.length > 1;
+            if (hasInternalHistory) {
+              router.back();
+              return;
+            }
+          }
+          if (returnViewMode === "dashboard" || savedPlans.length > 0) {
+            setViewMode("dashboard");
+          } else {
+            setViewMode("landing");
+          }
         }}
-        initialSelection={onboardingSelection}
+        initialSelection={createPlanInitialSelection}
         isGenerating={isOnboardingGenerating}
         generationError={onboardingGenerationError}
       />
@@ -810,8 +792,19 @@ export default function Home() {
   if (viewMode === "login") {
     return (
       <LoginPage
-        onBackToLanding={() => setViewMode("landing")}
-        onNavigateSignup={() => setViewMode("signup")}
+        onBackToLanding={() => {
+          if (typeof window !== "undefined") {
+            const stateIdx = window.history.state?.idx;
+            const hasInternalHistory =
+              typeof stateIdx === "number" ? stateIdx > 0 : window.history.length > 1;
+            if (hasInternalHistory) {
+              router.back();
+              return;
+            }
+          }
+          setViewMode("landing");
+        }}
+        onNavigateSignup={() => router.push("/signup")}
       />
     );
   }
@@ -820,8 +813,19 @@ export default function Home() {
   if (viewMode === "signup") {
     return (
       <SignupPage
-        onBackToLanding={() => setViewMode("landing")}
-        onNavigateLogin={() => setViewMode("login")}
+        onBackToLanding={() => {
+          if (typeof window !== "undefined") {
+            const stateIdx = window.history.state?.idx;
+            const hasInternalHistory =
+              typeof stateIdx === "number" ? stateIdx > 0 : window.history.length > 1;
+            if (hasInternalHistory) {
+              router.back();
+              return;
+            }
+          }
+          setViewMode("landing");
+        }}
+        onNavigateLogin={() => router.push("/login")}
       />
     );
   }
@@ -850,10 +854,7 @@ export default function Home() {
           setSelectedPeriodIndex(null);
         }}
         onDeletePlan={handleDeletePlan}
-        onOpenCreateModal={() => {
-          setError("");
-          setIsModalOpen(true);
-        }}
+        onOpenCreateModal={() => handleOpenCreatePlan()}
         onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
         onOpenAbout={() => setIsAboutModalOpen(true)}
         onReturnHome={() => setViewMode("landing")}
@@ -869,10 +870,7 @@ export default function Home() {
         <TopBar
           activePlan={activePlan}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
-          onOpenCreateModal={() => {
-            setError("");
-            setIsModalOpen(true);
-          }}
+          onOpenCreateModal={() => handleOpenCreatePlan()}
           onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
           onExportPDF={handleExportPDF}
           onExportMarkdown={handleExportMarkdown}
@@ -1128,13 +1126,33 @@ export default function Home() {
           ) : (
             /* Empty State Hero */
             <EmptyStateHero
-              onOpenModal={() => {
-                setError("");
-                setIsModalOpen(true);
-              }}
+              onOpenModal={() => handleOpenCreatePlan()}
               onGeneratePreset={(preset) => {
-                setIsModalOpen(true);
-                handleGeneratePlan(preset);
+                const hours = preset.daily_hours;
+                const dailyLabel =
+                  hours === 0.5 ? "30 min" : hours === 1 ? "1 hour" : `${hours} hours`;
+                const durationDays =
+                  preset.timeframe === "3 Days"
+                    ? 3
+                    : preset.timeframe === "1 Week"
+                    ? 7
+                    : preset.timeframe === "2 Weeks"
+                    ? 14
+                    : 30;
+                const totalEstimatedHours = Math.round(preset.daily_hours * durationDays);
+                const selection: OnboardingSelection = {
+                  subject: preset.topic,
+                  dailyMinutes: Math.round(preset.daily_hours * 60),
+                  dailyLabel,
+                  durationDays,
+                  durationLabel: preset.timeframe,
+                  level:
+                    (preset.experience_level as "Beginner" | "Intermediate" | "Advanced") ||
+                    "Intermediate",
+                  totalEstimatedHours,
+                  selectedAt: Date.now(),
+                };
+                handleOpenCreatePlan(selection);
               }}
             />
           )}
@@ -1151,15 +1169,6 @@ export default function Home() {
         onClose={() => setActiveTimer(null)}
       />
 
-      {/* Command Palette Creation Modal */}
-      <CreationModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onGenerate={handleGeneratePlan}
-        loading={loading}
-        error={error}
-      />
-
       {/* Slide-out Plan History Drawer */}
       <PlanHistorySidebar
         isOpen={isHistoryDrawerOpen}
@@ -1173,10 +1182,6 @@ export default function Home() {
         onDeletePlan={handleDeletePlan}
         onRenamePlan={handleRenamePlan}
         onToggleArchivePlan={handleToggleArchivePlan}
-        onOpenNewPlanModal={() => {
-          setError("");
-          setIsModalOpen(true);
-        }}
         completedTasksMap={completedTasksMap}
       />
 

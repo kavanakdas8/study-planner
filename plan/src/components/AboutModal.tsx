@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { X, Shield, Zap, Sparkles, BookOpen } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 
 interface AboutModalProps {
@@ -31,21 +30,13 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-slate-900">CuratePlan</h2>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                <span className="text-[10px] font-mono text-slate-400 font-medium">
                   v1.0.0
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">Plan Smarter. Learn Better.</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-            aria-label="Close dialog"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Content */}
@@ -55,43 +46,30 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           </p>
 
           <div className="space-y-2.5 pt-1">
-            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold text-slate-900 block">AI Curriculum Generation</span>
-                <span className="text-[11px] text-slate-500">Autonomous curriculum generation powered by Google Gemini and FastAPI.</span>
-              </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <span className="font-semibold text-slate-900 block">AI Curriculum Generation</span>
+              <span className="text-[11px] text-slate-500">Autonomous curriculum generation powered by Google Gemini and FastAPI.</span>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-              <Zap className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold text-slate-900 block">Deep Focus Mode</span>
-                <span className="text-[11px] text-slate-500">Integrated Pomodoro timer with interval chime alerts and task session tracking.</span>
-              </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <span className="font-semibold text-slate-900 block">Deep Focus Mode</span>
+              <span className="text-[11px] text-slate-500">Integrated Pomodoro timer with interval chime alerts and task session tracking.</span>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-              <BookOpen className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold text-slate-900 block">Study History & Roadmaps</span>
-                <span className="text-[11px] text-slate-500">Organize, rename, archive, and manage multiple learning curricula seamlessly.</span>
-              </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <span className="font-semibold text-slate-900 block">Study History & Roadmaps</span>
+              <span className="text-[11px] text-slate-500">Organize, rename, archive, and manage multiple learning curricula seamlessly.</span>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-              <Shield className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold text-slate-900 block">Local-First & Privacy Preserving</span>
-                <span className="text-[11px] text-slate-500">All data stays in your browser. No mandatory account, no telemetry, zero vendor lock-in.</span>
-              </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <span className="font-semibold text-slate-900 block">Local-First & Privacy Preserving</span>
+              <span className="text-[11px] text-slate-500">All data stays in your browser. No mandatory account, no telemetry, zero vendor lock-in.</span>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[11px] text-slate-400">Personal Workspace</span>
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
           <button
             type="button"
             onClick={onClose}
@@ -104,4 +82,3 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
     </div>
   );
 }
-

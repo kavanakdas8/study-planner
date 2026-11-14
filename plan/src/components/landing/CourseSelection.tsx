@@ -50,12 +50,31 @@ export function CourseSelection({
   generationError = null,
 }: CourseSelectionProps) {
   const [subject, setSubject] = useState(initialSelection?.subject || "");
-  const [dailyOptionId, setDailyOptionId] = useState<string>("1h");
-  const [customHours, setCustomHours] = useState<number>(1);
-  const [customMinutes, setCustomMinutes] = useState<number>(15);
 
-  const [durationOptionId, setDurationOptionId] = useState<string>("1m");
-  const [customDurationValue, setCustomDurationValue] = useState<number>(6);
+  const resolveInitialDailyOption = () => {
+    if (!initialSelection?.dailyMinutes) return "1h";
+    const match = DAILY_TIME_OPTIONS.find((o) => o.minutes === initialSelection.dailyMinutes);
+    return match ? match.id : "custom";
+  };
+
+  const resolveInitialDurationOption = () => {
+    if (!initialSelection?.durationDays) return "1m";
+    const match = DURATION_OPTIONS.find((o) => o.days === initialSelection.durationDays);
+    return match ? match.id : "custom";
+  };
+
+  const [dailyOptionId, setDailyOptionId] = useState<string>(resolveInitialDailyOption);
+  const [customHours, setCustomHours] = useState<number>(
+    initialSelection?.dailyMinutes ? Math.floor(initialSelection.dailyMinutes / 60) : 1
+  );
+  const [customMinutes, setCustomMinutes] = useState<number>(
+    initialSelection?.dailyMinutes ? initialSelection.dailyMinutes % 60 : 15
+  );
+
+  const [durationOptionId, setDurationOptionId] = useState<string>(resolveInitialDurationOption);
+  const [customDurationValue, setCustomDurationValue] = useState<number>(
+    initialSelection?.durationDays ? Math.max(1, Math.round(initialSelection.durationDays / 7)) : 6
+  );
   const [customDurationUnit, setCustomDurationUnit] = useState<"weeks" | "months">("weeks");
 
   const [level, setLevel] = useState<DifficultyLevel | "">(
