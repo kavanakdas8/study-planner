@@ -9,8 +9,8 @@ export default function LoginRoute() {
 
   return (
     <LoginPage
+      onBackToLanding={() => router.push("/")}
       onNavigateSignup={() => router.push("/signup")}
     />
   );
 }
-

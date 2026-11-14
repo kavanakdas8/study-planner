@@ -21,9 +21,12 @@ import {
   Columns,
   GitCommit,
   Trash2,
+  Save,
+  Undo2,
 } from "lucide-react";
 import { playChime } from "@/lib/utils";
 import { syncCurriculumToSchedule } from "@/lib/curriculumAdapter";
+import { curriculumStorage } from "@/services/curriculumStorage";
 import { TaskStreamTable } from "./TaskStreamTable";
 import { KanbanView } from "./KanbanView";
 import { TimelineView } from "./TimelineView";
@@ -38,6 +41,9 @@ interface CurriculumRoadmapViewProps {
   userSettings: UserSettings;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  hasUnsavedChanges?: boolean;
+  onSavePlan?: () => void;
+  onDiscardChanges?: () => void;
 }
 
 type SubView = "table" | "kanban" | "timeline" | "revisions" | "milestones";
@@ -52,23 +58,20 @@ export function CurriculumRoadmapView({
   userSettings,
   searchQuery,
   onSearchChange,
+  hasUnsavedChanges = false,
+  onSavePlan,
+  onDiscardChanges,
 }: CurriculumRoadmapViewProps) {
   const [activeSubView, setActiveSubView] = useState<SubView>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("study_planner_roadmap_subview_v1") as SubView | null;
-        if (stored && ["table", "kanban", "timeline", "revisions", "milestones"].includes(stored)) {
-          return stored;
-        }
-      } catch {}
+    const stored = curriculumStorage.getRoadmapSubview() as SubView;
+    if (["table", "kanban", "timeline", "revisions", "milestones"].includes(stored)) {
+      return stored;
     }
     return "table";
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem("study_planner_roadmap_subview_v1", activeSubView);
-    } catch {}
+    curriculumStorage.saveRoadmapSubview(activeSubView);
   }, [activeSubView]);
 
   const [resourceFilter, setResourceFilter] = useState("All");
@@ -334,6 +337,35 @@ export function CurriculumRoadmapView({
 
           {/* Quick action buttons */}
           <div className="flex items-center gap-2 flex-wrap">
+            {hasUnsavedChanges && onSavePlan && (
+              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg p-1 animate-fade-in">
+                <span className="text-[11px] font-semibold text-amber-800 px-2 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  Unsaved Draft
+                </span>
+                {onDiscardChanges && (
+                  <button
+                    type="button"
+                    onClick={onDiscardChanges}
+                    title="Discard pending changes"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-white hover:bg-slate-50 border border-slate-200 text-xs font-medium text-slate-600 transition cursor-pointer"
+                  >
+                    <Undo2 className="w-3 h-3 text-slate-500" />
+                    <span>Discard</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onSavePlan}
+                  title="Save changes to curriculum"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Plan</span>
+                </button>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => setIsAdaptiveModalOpen(true)}

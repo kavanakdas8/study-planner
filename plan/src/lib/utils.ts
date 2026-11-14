@@ -219,32 +219,3 @@ export function generateICS(plan: StudyPlan): string {
   ics.push("END:VCALENDAR");
   return ics.join("\r\n");
 }
-
-export function exportPlanToCSV(
-  plan: StudyPlan,
-  completedMap: Record<string, boolean>
-): string {
-  const headers = ["Module / Period", "Task Title", "Duration (Minutes)", "Resource Type", "Status", "Description"];
-  const rows = [headers.join(",")];
-
-  plan.schedule.forEach((period, pIdx) => {
-    period.tasks.forEach((task, tIdx) => {
-      const isDone = !!completedMap[`${pIdx}_${tIdx}`];
-      const status = isDone ? "Completed" : "Pending";
-      const cleanTitle = `"${(task.title || "").replace(/"/g, '""')}"`;
-      const cleanDesc = `"${(task.description || "").replace(/"/g, '""')}"`;
-      const cleanPeriod = `"${(period.period_label || "").replace(/"/g, '""')}"`;
-
-      rows.push([
-        cleanPeriod,
-        cleanTitle,
-        task.duration_minutes,
-        task.resource_type,
-        status,
-        cleanDesc,
-      ].join(","));
-    });
-  });
-
-  return rows.join("\r\n");
-}

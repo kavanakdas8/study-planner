@@ -305,38 +305,6 @@ export function syncCurriculumToSchedule(plan: SavedPlan): SavedPlan {
 }
 
 /**
- * Checks for circular dependency if targetPrereqId is added to topicId
- */
-export function checkCircularPrerequisite(
-  topicId: string,
-  candidatePrereqId: string,
-  allTopics: CurriculumTopic[]
-): boolean {
-  if (topicId === candidatePrereqId) return true;
-
-  const topicMap = new Map<string, CurriculumTopic>();
-  allTopics.forEach((t) => topicMap.set(t.id, t));
-
-  const visited = new Set<string>();
-
-  function dfs(currentId: string): boolean {
-    if (currentId === topicId) return true;
-    if (visited.has(currentId)) return false;
-    visited.add(currentId);
-
-    const curr = topicMap.get(currentId);
-    if (!curr || !curr.prerequisiteIds) return false;
-
-    for (const prereq of curr.prerequisiteIds) {
-      if (dfs(prereq)) return true;
-    }
-    return false;
-  }
-
-  return dfs(candidatePrereqId);
-}
-
-/**
  * Generates initial realistic study sessions for the default plan
  * so the Analytics dashboard has actual recorded data immediately.
  */
