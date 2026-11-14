@@ -12,7 +12,7 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import { ActiveTimer, UserSettings } from "@/types/study";
+import { ActiveTimer } from "@/types/study";
 import { formatTimeSeconds, playChime } from "@/lib/utils";
 
 interface FocusTimerProps {
@@ -20,7 +20,6 @@ interface FocusTimerProps {
   onUpdate: React.Dispatch<React.SetStateAction<ActiveTimer | null>>;
   onCompleteTask: (taskId: string) => void;
   onClose: () => void;
-  userSettings?: UserSettings;
 }
 
 export function FocusTimer({
@@ -28,19 +27,12 @@ export function FocusTimer({
   onUpdate,
   onCompleteTask,
   onClose,
-  userSettings,
 }: FocusTimerProps) {
   const [minimized, setMinimized] = useState(false);
   const timerRef = useRef<ActiveTimer | null>(timer);
-  const userSettingsRef = useRef<UserSettings | undefined>(userSettings);
-
   useEffect(() => {
     timerRef.current = timer;
   }, [timer]);
-
-  useEffect(() => {
-    userSettingsRef.current = userSettings;
-  }, [userSettings]);
 
   const isRunning = timer?.isRunning;
 
@@ -59,27 +51,12 @@ export function FocusTimer({
       lastTick = now;
 
       if (current.remainingSeconds <= deltaSeconds) {
-        const settings = userSettingsRef.current;
-        if (settings?.timer?.soundNotifications ?? true) {
-          playChime("timer");
-        }
-        if (settings?.timer?.autoStartBreaks) {
-          const breakMins = settings.timer.shortBreakMinutes || 5;
-          const breakSecs = breakMins * 60;
-          onUpdate({
-            ...current,
-            taskTitle: `Rest Break (${breakMins}m)`,
-            totalSeconds: breakSecs,
-            remainingSeconds: breakSecs,
-            isRunning: true,
-          });
-        } else {
-          onUpdate({
-            ...current,
-            remainingSeconds: 0,
-            isRunning: false,
-          });
-        }
+        playChime("timer");
+        onUpdate({
+          ...current,
+          remainingSeconds: 0,
+          isRunning: false,
+        });
       } else {
         onUpdate({
           ...current,
@@ -281,7 +258,7 @@ export function FocusTimer({
 
             {/* Controls */}
             <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={toggleRunning}
@@ -313,25 +290,6 @@ export function FocusTimer({
 
                 <button
                   type="button"
-                  onClick={() => {
-                    const breakMins = userSettings?.timer?.shortBreakMinutes || 5;
-                    playChime("click");
-                    onUpdate({
-                      ...timer,
-                      taskTitle: `Short Break (${breakMins}m)`,
-                      totalSeconds: breakMins * 60,
-                      remainingSeconds: breakMins * 60,
-                      isRunning: true,
-                    });
-                  }}
-                  title={`Start Short Break (${userSettings?.timer?.shortBreakMinutes || 5}m)`}
-                  className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-mono border border-slate-200 transition cursor-pointer"
-                >
-                  Break ({userSettings?.timer?.shortBreakMinutes || 5}m)
-                </button>
-
-                <button
-                  type="button"
                   onClick={resetTimer}
                   title="Reset Timer"
                   className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 rounded-lg border border-slate-200 transition cursor-pointer"
@@ -343,7 +301,7 @@ export function FocusTimer({
               <button
                 type="button"
                 onClick={handleMarkDone}
-                className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ml-auto"
+                className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
               >
                 <CheckCircle className="w-3.5 h-3.5" /> Mark Done
               </button>

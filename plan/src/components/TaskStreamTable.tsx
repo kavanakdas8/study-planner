@@ -26,7 +26,6 @@ interface TaskStreamTableProps {
   searchQuery: string;
   resourceFilter: string;
   selectedPeriodIndex: number | null;
-  showCompletedTasks?: boolean;
   onClearPeriodFilter?: () => void;
   onViewAllClick?: () => void;
   onEditModule?: (moduleIndex: number) => void;
@@ -42,7 +41,6 @@ export function TaskStreamTable({
   searchQuery,
   resourceFilter,
   selectedPeriodIndex,
-  showCompletedTasks = true,
   onClearPeriodFilter,
   onViewAllClick,
   onEditModule,
@@ -88,14 +86,9 @@ export function TaskStreamTable({
     return list;
   }, [plan]);
 
-  // Filter tasks based on search, resource filter, selected period node, and completed tasks visibility
+  // Filter tasks based on search, resource filter, and selected period node
   const filteredTasks = React.useMemo(() => {
-    return allTasks.filter(({ task, taskId, periodIndex }) => {
-      // Hide completed tasks if preference is disabled
-      if (!showCompletedTasks && completedTasksMap[taskId]) {
-        return false;
-      }
-
+    return allTasks.filter(({ task, periodIndex }) => {
       if (selectedPeriodIndex !== null && periodIndex !== selectedPeriodIndex) {
         return false;
       }
@@ -115,7 +108,7 @@ export function TaskStreamTable({
 
       return true;
     });
-  }, [allTasks, selectedPeriodIndex, searchQuery, resourceFilter, showCompletedTasks, completedTasksMap]);
+  }, [allTasks, selectedPeriodIndex, searchQuery, resourceFilter]);
 
   // Group filtered tasks by periodIndex
   const tasksByPeriod = React.useMemo(() => {

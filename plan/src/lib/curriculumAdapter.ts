@@ -30,7 +30,6 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     language: "en",
     dateFormat: "YYYY-MM-DD",
     timeFormat: "12h",
-    timezone: "America/New_York",
   },
   study: {
     dailyStudyGoalHours: 2.5,
@@ -42,8 +41,6 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     autoRescheduling: true,
     revisionScheduler: true,
     revisionIntervals: [1, 3, 7, 14],
-    studyStartTime: "09:00",
-    showCompletedTasks: true,
   },
   timer: {
     pomodoroDurationMinutes: 25,
@@ -72,104 +69,6 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     milestoneAlerts: true,
   },
 };
-
-/**
- * Loads all saved curricula from localStorage.
- */
-export function loadSavedPlans(): SavedPlan[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_PLANS);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as SavedPlan[];
-    return parsed.map((p) => normalizePlanToCurriculum(p));
-  } catch (err) {
-    console.error("Failed to load saved plans:", err);
-    return [];
-  }
-}
-
-/**
- * Explicitly persists an array of saved curricula to localStorage.
- */
-export function saveSavedPlans(plans: SavedPlan[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(plans));
-  } catch (err) {
-    console.error("Failed to save plans to localStorage:", err);
-  }
-}
-
-/**
- * Loads a single curriculum by ID from storage.
- */
-export function loadCurriculum(planId: string): SavedPlan | null {
-  const plans = loadSavedPlans();
-  return plans.find((p) => p.id === planId) || null;
-}
-
-/**
- * Explicitly saves a single curriculum draft into saved plans storage.
- * If the plan already exists, it is updated; otherwise it is prepended.
- * Returns the updated list of saved plans.
- */
-export function saveCurriculum(plan: SavedPlan): SavedPlan[] {
-  const plans = loadSavedPlans();
-  const existingIdx = plans.findIndex((p) => p.id === plan.id);
-  const updatedPlan: SavedPlan = {
-    ...plan,
-    lastModifiedAt: Date.now(),
-  };
-
-  let updatedPlans: SavedPlan[];
-  if (existingIdx >= 0) {
-    updatedPlans = plans.map((p, idx) => (idx === existingIdx ? updatedPlan : p));
-  } else {
-    updatedPlans = [updatedPlan, ...plans];
-  }
-
-  saveSavedPlans(updatedPlans);
-  return updatedPlans;
-}
-
-/**
- * Explicitly removes a curriculum from storage.
- */
-export function clearCurriculum(planId: string): SavedPlan[] {
-  const plans = loadSavedPlans();
-  const updatedPlans = plans.filter((p) => p.id !== planId);
-  saveSavedPlans(updatedPlans);
-  return updatedPlans;
-}
-
-/**
- * Checks whether an editable draft curriculum has unsaved changes compared to the saved version.
- */
-export function checkCurriculumDirty(
-  draft: SavedPlan | null,
-  saved: SavedPlan | null
-): boolean {
-  if (!draft && !saved) return false;
-  if (!draft && saved) return false;
-  // If draft exists but hasn't been saved yet (newly generated plan)
-  if (draft && !saved) return true;
-
-  if (draft!.subject !== saved!.subject) return true;
-  if (draft!.target_timeframe !== saved!.target_timeframe) return true;
-  if (draft!.daily_hours !== saved!.daily_hours) return true;
-  if (draft!.experience_level !== saved!.experience_level) return true;
-  if (draft!.overview !== saved!.overview) return true;
-  if (Boolean(draft!.isArchived) !== Boolean(saved!.isArchived)) return true;
-
-  // Deep comparison of schedules, modules, milestones, revisions
-  if (JSON.stringify(draft!.schedule) !== JSON.stringify(saved!.schedule)) return true;
-  if (JSON.stringify(draft!.modules) !== JSON.stringify(saved!.modules)) return true;
-  if (JSON.stringify(draft!.milestones) !== JSON.stringify(saved!.milestones)) return true;
-  if (JSON.stringify(draft!.revisions) !== JSON.stringify(saved!.revisions)) return true;
-
-  return false;
-}
 
 /**
  * Ensures a SavedPlan has fully populated modules, topics, milestones, and revision schedule.

@@ -14,7 +14,6 @@ interface KanbanViewProps {
   activeTimerTaskId: string | null;
   searchQuery: string;
   resourceFilter: string;
-  showCompletedTasks?: boolean;
   onEditModule?: (moduleIndex: number) => void;
   onDeleteModule?: (moduleIndex: number) => void;
 }
@@ -27,7 +26,6 @@ export function KanbanView({
   activeTimerTaskId,
   searchQuery,
   resourceFilter,
-  showCompletedTasks = true,
   onEditModule,
   onDeleteModule,
 }: KanbanViewProps) {
@@ -49,13 +47,7 @@ export function KanbanView({
   return (
     <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x scrollbar-thin">
       {plan.schedule.map((period, pIdx) => {
-        const filteredTasks = period.tasks.filter((task, tIdx) => {
-          const taskId = `${plan.id}_${pIdx}_${tIdx}`;
-          if (!showCompletedTasks && completedTasksMap[taskId]) {
-            return false;
-          }
-          return matchesFilter(task);
-        });
+        const filteredTasks = period.tasks.filter(matchesFilter);
         const periodTotalMinutes = period.tasks.reduce(
           (acc, t) => acc + (t.duration_minutes || 0),
           0

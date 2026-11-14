@@ -123,12 +123,11 @@ export interface UserSettings {
   general: {
     displayName: string;
     avatarInitials: string;
-    defaultDashboardView: 'roadmap' | 'cards' | 'timeline' | 'table';
+    defaultDashboardView: 'table' | 'kanban' | 'timeline' | 'graph';
     defaultPlanId: string;
     language: string;
     dateFormat: 'YYYY-MM-DD' | 'MM/DD/YYYY' | 'DD/MM/YYYY';
     timeFormat: '12h' | '24h';
-    timezone?: string;
   };
   study: {
     dailyStudyGoalHours: number;
@@ -140,8 +139,6 @@ export interface UserSettings {
     autoRescheduling: boolean;
     revisionScheduler: boolean;
     revisionIntervals: number[]; // default [1, 3, 7, 14]
-    studyStartTime?: string;
-    showCompletedTasks?: boolean;
   };
   timer: {
     pomodoroDurationMinutes: number;

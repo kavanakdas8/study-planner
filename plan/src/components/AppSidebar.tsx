@@ -5,13 +5,14 @@ import {
   LayoutDashboard,
   MapPin,
   BarChart3,
-  Settings,
   ChevronLeft,
   Plus,
   BookOpen,
   Trash2,
   X,
   CheckCircle2,
+  History,
+  Info,
 } from "lucide-react";
 import { SavedPlan, ActiveTimer } from "@/types/study";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -27,6 +28,7 @@ interface AppSidebarProps {
   onDeletePlan: (planId: string) => void;
   onOpenCreateModal: () => void;
   onOpenHistoryModal?: () => void;
+  onOpenAbout?: () => void;
   onReturnHome?: () => void;
   activeTimer: ActiveTimer | null;
   completedTasksMap: Record<string, boolean>;
@@ -44,6 +46,8 @@ export function AppSidebar({
   onSelectPlan,
   onDeletePlan,
   onOpenCreateModal,
+  onOpenHistoryModal,
+  onOpenAbout,
   onReturnHome,
   activeTimer,
   completedTasksMap,
@@ -81,10 +85,6 @@ export function AppSidebar({
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "curriculum", label: "Curriculum Roadmap", icon: MapPin },
     { id: "analytics", label: "Analytics & Progress", icon: BarChart3 },
-  ];
-
-  const manageNavItems = [
-    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   const sidebarContent = (
@@ -183,46 +183,28 @@ export function AppSidebar({
           })}
         </div>
 
-        {/* Section: MANAGE */}
-        <div className="space-y-0.5 pt-2 border-t border-slate-100">
-          {isExpanded && (
-            <div className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-              Manage
-            </div>
-          )}
-
-          {manageNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNavTab === item.id;
-            return (
-              <button
-                type="button"
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                title={item.label}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer ${isActive
-                  ? "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/70"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
-                  } ${!isExpanded ? "justify-center px-0" : ""}`}
-              >
-                <Icon
-                  className={`w-4 h-4 shrink-0 ${isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
-                    }`}
-                />
-                {isExpanded && <span className="truncate whitespace-nowrap">{item.label}</span>}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Section: Study History */}
         {isExpanded && (
           <div className="space-y-1 pt-2 border-t border-slate-100">
             <div className="px-2.5 pb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <span>Study History</span>
-              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200 text-slate-500 font-semibold">
-                {savedPlans.length}
+              <span className="flex items-center gap-1.5">
+                <span>Study History</span>
               </span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200 text-slate-500 font-semibold">
+                  {savedPlans.length}
+                </span>
+                {onOpenHistoryModal && (
+                  <button
+                    type="button"
+                    onClick={onOpenHistoryModal}
+                    title="Manage Study History"
+                    className="p-0.5 text-slate-400 hover:text-emerald-700 rounded hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    <History className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {savedPlans.length === 0 ? (
@@ -251,6 +233,11 @@ export function AppSidebar({
                             }`}
                         />
                         <span className="truncate">{plan.subject}</span>
+                        {plan.isArchived && (
+                          <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
+                            Archived
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
@@ -261,7 +248,7 @@ export function AppSidebar({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm(`Delete plan "${plan.subject}"?`)) {
+                            if (confirm(`Are you sure you want to permanently delete "${plan.subject}"? This action cannot be undone.`)) {
                               onDeletePlan(plan.id);
                             }
                           }}
@@ -330,7 +317,20 @@ export function AppSidebar({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-semibold text-slate-900 truncate whitespace-nowrap">Alex Developer</div>
-                <div className="text-[10px] text-slate-500 truncate whitespace-nowrap">Personal Workspace</div>
+                <div className="text-[10px] text-slate-500 truncate whitespace-nowrap flex items-center gap-1">
+                  <span>Personal Workspace</span>
+                  {onOpenAbout && (
+                    <button
+                      type="button"
+                      onClick={onOpenAbout}
+                      className="text-slate-400 hover:text-emerald-700 transition inline-flex items-center gap-0.5 cursor-pointer ml-1"
+                      title="About CuratePlan"
+                    >
+                      <Info className="w-2.5 h-2.5" />
+                      <span>About</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             <button
@@ -343,7 +343,7 @@ export function AppSidebar({
             </button>
           </div>
         ) : (
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-1">
             <div
               title="Alex Developer (Personal Workspace)"
               onClick={onToggleCollapse}

@@ -15,8 +15,6 @@ interface CreationModalProps {
   }) => Promise<void>;
   loading: boolean;
   error: string;
-  defaultDifficulty?: string;
-  defaultDailyHours?: number;
 }
 
 const PRESET_CHIPS = [
@@ -61,24 +59,12 @@ export function CreationModal({
   onGenerate,
   loading,
   error,
-  defaultDifficulty = "Intermediate",
-  defaultDailyHours = 2,
 }: CreationModalProps) {
   const [topic, setTopic] = useState("");
   const [timeframe, setTimeframe] = useState("1 Week");
-  const [dailyHours, setDailyHours] = useState(defaultDailyHours);
-  const [experienceLevel, setExperienceLevel] = useState(defaultDifficulty);
+  const [dailyHours, setDailyHours] = useState(2);
+  const [experienceLevel, setExperienceLevel] = useState("Intermediate");
   const [progressMsgIdx, setProgressMsgIdx] = useState(0);
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
-
-  // Sync state during render when modal opens (React pattern for adjusting state on prop change)
-  if (isOpen !== prevIsOpen) {
-    setPrevIsOpen(isOpen);
-    if (isOpen) {
-      setDailyHours(defaultDailyHours);
-      setExperienceLevel(defaultDifficulty);
-    }
-  }
 
   const inputRef = useRef<HTMLInputElement>(null);
 

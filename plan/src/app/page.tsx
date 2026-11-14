@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { StudyPlan, SavedPlan, ActiveTimer, Task, StudySession, UserSettings, AppViewMode, OnboardingSelection } from "@/types/study";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
@@ -11,8 +11,7 @@ import { PlanHistorySidebar } from "@/components/PlanHistorySidebar";
 import { EmptyStateHero } from "@/components/EmptyStateHero";
 import { CurriculumRoadmapView } from "@/components/CurriculumRoadmapView";
 import { AnalyticsView } from "@/components/AnalyticsView";
-import { SettingsView } from "@/components/SettingsView";
-import { UnsavedChangesModal } from "@/components/UnsavedChangesModal";
+import { AboutModal } from "@/components/AboutModal";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { CourseSelectionPage } from "@/components/landing/CourseSelectionPage";
 import { LoginPage } from "@/components/auth/LoginPage";
@@ -20,6 +19,7 @@ import { SignupPage } from "@/components/auth/SignupPage";
 import { exportPlanToMarkdown, downloadFile, generateICS, playChime } from "@/lib/utils";
 import { exportCurriculumToPDF } from "@/lib/pdfGenerator";
 import {
+  STORAGE_KEY_PLANS,
   STORAGE_KEY_ACTIVE_ID,
   STORAGE_KEY_PROGRESS,
   STORAGE_KEY_SIDEBAR_COLLAPSED,
@@ -31,11 +31,6 @@ import {
   DEFAULT_USER_SETTINGS,
   normalizePlanToCurriculum,
   generateSeedSessions,
-  loadSavedPlans,
-  saveSavedPlans,
-  saveCurriculum,
-  clearCurriculum,
-  checkCurriculumDirty,
 } from "@/lib/curriculumAdapter";
 import {
   Clock,
@@ -43,11 +38,7 @@ import {
   Check,
   CheckCircle2,
   AlertTriangle,
-  AlertCircle,
   X,
-  Save,
-  Loader2,
-  Sparkles,
 } from "lucide-react";
 
 const DEFAULT_SEED_PLAN: SavedPlan = {
@@ -193,16 +184,6 @@ export default function Home() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
 
-  // Editable Working Draft & Manual Save State
-  const [draftPlan, setDraftPlan] = useState<SavedPlan | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
-
-  // Unsaved Changes Protection Modal State
-  const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  const [pendingActionContext, setPendingActionContext] = useState<string>("");
-
   // UI View & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
@@ -210,6 +191,7 @@ export default function Home() {
   // Drawers & Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
 
   // Focus Timer State
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
@@ -237,7 +219,11 @@ export default function Home() {
   useEffect(() => {
     queueMicrotask(() => {
       try {
-        const storedPlans = loadSavedPlans();
+        if (typeof document !== "undefined") {
+          document.documentElement.classList.remove("dark");
+          document.documentElement.classList.add("light");
+        }
+        const storedPlans = localStorage.getItem(STORAGE_KEY_PLANS);
         const storedActiveId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
         const storedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
         const storedTimer = localStorage.getItem(STORAGE_KEY_ACTIVE_TIMER);
@@ -246,20 +232,20 @@ export default function Home() {
         const storedOnboarding = localStorage.getItem(STORAGE_KEY_ONBOARDING);
         const sessionViewMode = sessionStorage.getItem(STORAGE_KEY_VIEW_MODE) as AppViewMode | null;
 
-        if (storedPlans.length > 0) {
-          setSavedPlans(storedPlans);
-          const initialPlan =
-            (storedActiveId && storedPlans.find((p) => p.id === storedActiveId)) ||
-            storedPlans[0];
-          setActivePlanId(initialPlan.id);
-          setDraftPlan(JSON.parse(JSON.stringify(initialPlan)));
+        if (storedPlans) {
+          const parsed = JSON.parse(storedPlans) as SavedPlan[];
+          const normalized = parsed.map((p) => normalizePlanToCurriculum(p));
+          setSavedPlans(normalized);
+          if (storedActiveId && normalized.some((p) => p.id === storedActiveId)) {
+            setActivePlanId(storedActiveId);
+          } else if (normalized.length > 0) {
+            setActivePlanId(normalized[0].id);
+          }
         } else {
           // First-time visit: Initialize with default enterprise seed plan
           const normalizedSeed = normalizePlanToCurriculum(DEFAULT_SEED_PLAN, DEFAULT_COMPLETED_SEED);
           setSavedPlans([normalizedSeed]);
-          saveSavedPlans([normalizedSeed]);
           setActivePlanId(normalizedSeed.id);
-          setDraftPlan(JSON.parse(JSON.stringify(normalizedSeed)));
           setCompletedTasksMap(DEFAULT_COMPLETED_SEED);
         }
 
@@ -274,20 +260,19 @@ export default function Home() {
         }
 
         if (storedSettings) {
-          const parsed = JSON.parse(storedSettings);
-          if (parsed.appearance) {
-            parsed.appearance.theme = "light";
-          }
-          setUserSettings(parsed);
+          setUserSettings(JSON.parse(storedSettings));
         }
-        if (typeof document !== "undefined") {
-          document.documentElement.classList.remove("dark");
+
+        // Hydrate last selected dashboard view
+        const storedNavTab = localStorage.getItem("study_planner_active_nav_tab_v1");
+        if (storedNavTab && ["dashboard", "curriculum", "analytics"].includes(storedNavTab)) {
+          setActiveNavTab(storedNavTab);
         }
 
         if (storedOnboarding) {
           try {
             setOnboardingSelection(JSON.parse(storedOnboarding));
-          } catch {}
+          } catch { }
         }
 
         // Preserve tab refresh view state within the current session; new visits start on landing
@@ -310,9 +295,7 @@ export default function Home() {
       } catch {
         const normalizedSeed = normalizePlanToCurriculum(DEFAULT_SEED_PLAN, DEFAULT_COMPLETED_SEED);
         setSavedPlans([normalizedSeed]);
-        saveSavedPlans([normalizedSeed]);
         setActivePlanId(normalizedSeed.id);
-        setDraftPlan(JSON.parse(JSON.stringify(normalizedSeed)));
         setSessions(generateSeedSessions(DEFAULT_SEED_PLAN.id));
         setViewMode("landing");
       } finally {
@@ -321,7 +304,14 @@ export default function Home() {
     });
   }, []);
 
-  // Active Plan ID sync
+  // Sync to localStorage
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(savedPlans));
+    } catch { }
+  }, [savedPlans, mounted]);
+
   useEffect(() => {
     if (!mounted) return;
     try {
@@ -330,52 +320,35 @@ export default function Home() {
       } else {
         localStorage.removeItem(STORAGE_KEY_ACTIVE_ID);
       }
-    } catch {}
+    } catch { }
   }, [activePlanId, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
     try {
       localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(completedTasksMap));
-    } catch {}
+    } catch { }
   }, [completedTasksMap, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
     try {
       localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
-    } catch {}
+    } catch { }
   }, [sessions, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
     try {
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(userSettings));
-    } catch {}
+    } catch { }
   }, [userSettings, mounted]);
-
-  // Reflect Appearance Settings (Accent Color, Layout Density, Theme)
-  useEffect(() => {
-    if (!mounted) return;
-    const accent = userSettings.appearance?.accentColor || "emerald";
-    const density = userSettings.appearance?.layoutDensity || "comfortable";
-    const root = document.documentElement;
-
-    // Apply Accent Colour
-    root.setAttribute("data-accent", accent);
-
-    // Apply Layout Density
-    root.setAttribute("data-density", density);
-
-    // Always ensure dark class is removed to preserve clean, crisp daylight UI
-    root.classList.remove("dark");
-  }, [userSettings.appearance, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
     try {
       localStorage.setItem(STORAGE_KEY_SIDEBAR_COLLAPSED, String(sidebarCollapsed));
-    } catch {}
+    } catch { }
   }, [sidebarCollapsed, mounted]);
 
   useEffect(() => {
@@ -386,15 +359,22 @@ export default function Home() {
       } else {
         localStorage.removeItem(STORAGE_KEY_ACTIVE_TIMER);
       }
-    } catch {}
+    } catch { }
   }, [activeTimer, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
     try {
       sessionStorage.setItem(STORAGE_KEY_VIEW_MODE, viewMode);
-    } catch {}
+    } catch { }
   }, [viewMode, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      localStorage.setItem("study_planner_active_nav_tab_v1", activeNavTab);
+    } catch { }
+  }, [activeNavTab, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -404,40 +384,50 @@ export default function Home() {
       } else {
         localStorage.removeItem(STORAGE_KEY_ONBOARDING);
       }
-    } catch {}
+    } catch { }
   }, [onboardingSelection, mounted]);
 
-  // Last Saved Plan resolution (from savedPlans list)
-  const lastSavedPlan = useMemo(() => {
-    if (!activePlanId) return null;
-    const found = savedPlans.find((p) => p.id === activePlanId);
-    return found ? normalizePlanToCurriculum(found, completedTasksMap) : null;
-  }, [savedPlans, activePlanId, completedTasksMap]);
-
-  // Dirty state checking: does the current working draft differ from the last saved version?
-  const hasUnsavedChanges = useMemo(() => {
-    return checkCurriculumDirty(draftPlan, lastSavedPlan);
-  }, [draftPlan, lastSavedPlan]);
-
-  // Active Plan Resolution: The active working draft, or fallback to saved plan
-  const activePlan = useMemo(() => {
-    if (draftPlan) {
-      return normalizePlanToCurriculum(draftPlan, completedTasksMap);
-    }
-    return lastSavedPlan;
-  }, [draftPlan, lastSavedPlan, completedTasksMap]);
-
-  // Unsaved Changes Protection on Browser Tab Close / Refresh
+  // Global Keyboard Shortcuts
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + K -> Open creation modal
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        e.returnValue = "";
+        setError("");
+        setIsModalOpen((prev) => !prev);
+        return;
+      }
+
+      // [ or Cmd/Ctrl + B -> Toggle sidebar collapse
+      if (
+        (e.key === "[" && !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) ||
+        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b")
+      ) {
+        e.preventDefault();
+        setSidebarCollapsed((prev) => !prev);
+        return;
+      }
+
+      // / -> Focus search
+      if (
+        e.key === "/" &&
+        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
       }
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Active Plan Resolution
+  const activePlan = useMemo(() => {
+    const found = savedPlans.find((p) => p.id === activePlanId);
+    if (!found) return null;
+    return normalizePlanToCurriculum(found, completedTasksMap);
+  }, [savedPlans, activePlanId, completedTasksMap]);
 
   // Debugging Log: Curriculum loaded by dashboard
   useEffect(() => {
@@ -492,7 +482,7 @@ export default function Home() {
   const todayPriorityTask = pendingTasksList[0] || null;
   const upcomingTasksSlice = pendingTasksList.slice(1, 5);
 
-  // API Generate Plan Handler (Creates unsaved working draft)
+  // API Generate Plan Handler
   const handleGeneratePlan = async (payload: {
     topic: string;
     timeframe: string;
@@ -518,7 +508,7 @@ export default function Home() {
 
       const planData: StudyPlan = await res.json();
 
-      const newDraftPlan: SavedPlan = {
+      const newSavedPlan: SavedPlan = {
         ...planData,
         id: `plan_${Date.now()}`,
         createdAt: Date.now(),
@@ -526,9 +516,8 @@ export default function Home() {
         experience_level: payload.experience_level,
       };
 
-      const normalized = normalizePlanToCurriculum(newDraftPlan);
-      // Treat as new unsaved draft!
-      setDraftPlan(normalized);
+      const normalized = normalizePlanToCurriculum(newSavedPlan);
+      setSavedPlans((prev) => [normalized, ...prev]);
       setActivePlanId(normalized.id);
       setSelectedPeriodIndex(null);
       setIsModalOpen(false);
@@ -541,7 +530,7 @@ export default function Home() {
     }
   };
 
-  // Generate curriculum with AI & transition into the CuratePlan dashboard (as unsaved review draft)
+  // Generate curriculum with AI & transition into the CuratePlan dashboard
   const handleOnboardingStartLearning = async (selection: OnboardingSelection) => {
     setIsOnboardingGenerating(true);
     setOnboardingGenerationError(null);
@@ -588,7 +577,7 @@ export default function Home() {
       // Debugging Log: API response subject
       console.log("[CuratePlan] API response subject:", planData.subject);
 
-      const newDraftPlan: SavedPlan = {
+      const newSavedPlan: SavedPlan = {
         ...planData,
         id: `plan_${Date.now()}`,
         createdAt: Date.now(),
@@ -596,12 +585,26 @@ export default function Home() {
         experience_level: payload.experience_level,
       };
 
-      const normalized = normalizePlanToCurriculum(newDraftPlan);
+      const normalized = normalizePlanToCurriculum(newSavedPlan);
 
-      // CRITICAL: Treat as newly generated unsaved review draft.
-      // Do not automatically persist to savedPlans or localStorage.
-      setDraftPlan(normalized);
+      // Debugging Log: Curriculum saved to localStorage
+      console.log("[CuratePlan] Curriculum saved to localStorage:", normalized.id, normalized.subject);
+
+      // Prepend the new curriculum to savedPlans and immediately persist
+      setSavedPlans((prev) => {
+        const updated = [normalized, ...prev.filter((p) => p.id !== normalized.id)];
+        try {
+          localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(updated));
+        } catch { }
+        return updated;
+      });
+
+      // Explicitly set the newly created plan as active
       setActivePlanId(normalized.id);
+      try {
+        localStorage.setItem(STORAGE_KEY_ACTIVE_ID, normalized.id);
+        localStorage.setItem(STORAGE_KEY_ONBOARDING, JSON.stringify(selection));
+      } catch { }
 
       // Reset selection view and navigate into dashboard
       setSelectedPeriodIndex(null);
@@ -618,195 +621,6 @@ export default function Home() {
       setIsOnboardingGenerating(false);
     }
   };
-
-  // Explicit User Save Handler
-  const handleSaveCurriculum = useCallback(async () => {
-    if (isSaving || !draftPlan || !hasUnsavedChanges) return;
-
-    setIsSaving(true);
-    playChime("click");
-
-    try {
-      // Validate draft
-      if (!draftPlan.subject.trim()) {
-        throw new Error("Curriculum title cannot be empty.");
-      }
-      if (!draftPlan.schedule || draftPlan.schedule.length === 0) {
-        throw new Error("Curriculum must contain at least one learning module.");
-      }
-
-      // Small async pause for tactile UI feedback
-      await new Promise((resolve) => setTimeout(resolve, 350));
-
-      const updatedPlans = saveCurriculum(draftPlan);
-      setSavedPlans(updatedPlans);
-      setActivePlanId(draftPlan.id);
-      try {
-        localStorage.setItem(STORAGE_KEY_ACTIVE_ID, draftPlan.id);
-      } catch {}
-
-      playChime("complete");
-      setSaveSuccessMessage(`"${draftPlan.subject}" saved to Study History!`);
-      setTimeout(() => setSaveSuccessMessage(null), 4000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to save curriculum.";
-      alert(msg);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [isSaving, draftPlan, hasUnsavedChanges]);
-
-  // Explicit Discard Changes Handler
-  const handleDiscardCurriculum = () => {
-    playChime("click");
-    if (lastSavedPlan) {
-      // Restore working draft back to last explicitly saved version
-      setDraftPlan(JSON.parse(JSON.stringify(lastSavedPlan)));
-      setSaveSuccessMessage("Draft changes discarded. Restored last saved curriculum.");
-      setTimeout(() => setSaveSuccessMessage(null), 3000);
-    } else {
-      // Newly generated plan was never saved: revert to first saved plan in history or null
-      if (savedPlans.length > 0) {
-        const fallback = savedPlans[0];
-        setActivePlanId(fallback.id);
-        setDraftPlan(JSON.parse(JSON.stringify(fallback)));
-      } else {
-        setActivePlanId(null);
-        setDraftPlan(null);
-      }
-      setSaveSuccessMessage("Draft curriculum discarded.");
-      setTimeout(() => setSaveSuccessMessage(null), 3000);
-    }
-  };
-
-  // Protected Action Wrapper for Unsaved Changes
-  const handleProtectedAction = useCallback((action: () => void, contextDescription: string) => {
-    if (hasUnsavedChanges) {
-      setPendingAction(() => action);
-      setPendingActionContext(contextDescription);
-      setIsUnsavedModalOpen(true);
-    } else {
-      action();
-    }
-  }, [hasUnsavedChanges]);
-
-  const handleSelectPlan = (targetPlan: SavedPlan) => {
-    handleProtectedAction(() => {
-      setActivePlanId(targetPlan.id);
-      setDraftPlan(JSON.parse(JSON.stringify(targetPlan)));
-      setSelectedPeriodIndex(null);
-    }, `Switching to "${targetPlan.subject}"`);
-  };
-
-  const handleReturnHome = () => {
-    handleProtectedAction(() => {
-      setViewMode("landing");
-    }, "Returning to the home page");
-  };
-
-  const handleOpenNewPlan = useCallback(() => {
-    handleProtectedAction(() => {
-      setError("");
-      setIsModalOpen(true);
-    }, "Creating a new curriculum");
-  }, [handleProtectedAction]);
-
-  const handleModalSaveAndProceed = async () => {
-    if (draftPlan) {
-      const updated = saveCurriculum(draftPlan);
-      setSavedPlans(updated);
-      setActivePlanId(draftPlan.id);
-    }
-    setIsUnsavedModalOpen(false);
-    if (pendingAction) {
-      const action = pendingAction;
-      setPendingAction(null);
-      action();
-    }
-  };
-
-  const handleModalDiscardAndProceed = () => {
-    handleDiscardCurriculum();
-    setIsUnsavedModalOpen(false);
-    if (pendingAction) {
-      const action = pendingAction;
-      setPendingAction(null);
-      action();
-    }
-  };
-
-  const handleModalCancel = () => {
-    setIsUnsavedModalOpen(false);
-    setPendingAction(null);
-    setPendingActionContext("");
-  };
-
-  // Update Plan modifications from CurriculumRoadmapView or SettingsView
-  const handleUpdatePlan = (updatedPlan: SavedPlan) => {
-    setDraftPlan(updatedPlan);
-  };
-
-  // Delete plan from storage
-  const handleDeletePlan = (planId: string) => {
-    playChime("click");
-    const updated = clearCurriculum(planId);
-    setSavedPlans(updated);
-    if (activePlanId === planId) {
-      if (updated.length > 0) {
-        setActivePlanId(updated[0].id);
-        setDraftPlan(JSON.parse(JSON.stringify(updated[0])));
-      } else {
-        setActivePlanId(null);
-        setDraftPlan(null);
-      }
-    }
-    setSaveSuccessMessage("Curriculum deleted.");
-    setTimeout(() => setSaveSuccessMessage(null), 3000);
-  };
-
-  // Global Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + S -> Save Curriculum Changes
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        if (hasUnsavedChanges && !isSaving && draftPlan) {
-          handleSaveCurriculum();
-        }
-        return;
-      }
-
-      // Cmd/Ctrl + K -> Open creation modal
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setError("");
-        handleOpenNewPlan();
-        return;
-      }
-
-      // [ or Cmd/Ctrl + B -> Toggle sidebar collapse
-      if (
-        (e.key === "[" && !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) ||
-        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b")
-      ) {
-        e.preventDefault();
-        setSidebarCollapsed((prev) => !prev);
-        return;
-      }
-
-      // / -> Focus search
-      if (
-        e.key === "/" &&
-        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)
-      ) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasUnsavedChanges, isSaving, draftPlan, handleOpenNewPlan, handleSaveCurriculum]);
 
   // Toggle single task completion
   const handleToggleTask = (taskId: string) => {
@@ -851,6 +665,13 @@ export default function Home() {
       isRunning: true,
       lastTickAt: Date.now(),
     });
+  };
+
+  // Update Plan modifications from CurriculumRoadmapView
+  const handleUpdatePlan = (updatedPlan: SavedPlan) => {
+    setSavedPlans((prev) =>
+      prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p))
+    );
   };
 
   // Export Plan to Professional PDF Document
@@ -919,7 +740,34 @@ export default function Home() {
     }
   };
 
+  // Delete plan from storage
+  const handleDeletePlan = (planId: string) => {
+    playChime("click");
+    setSavedPlans((prev) => prev.filter((p) => p.id !== planId));
+    if (activePlanId === planId) {
+      const remaining = savedPlans.filter((p) => p.id !== planId);
+      setActivePlanId(remaining.length > 0 ? remaining[0].id : null);
+    }
+  };
 
+  // Rename plan
+  const handleRenamePlan = (planId: string, newSubject: string) => {
+    if (!newSubject.trim()) return;
+    setSavedPlans((prev) =>
+      prev.map((p) =>
+        p.id === planId ? { ...p, subject: newSubject.trim(), lastModifiedAt: Date.now() } : p
+      )
+    );
+  };
+
+  // Toggle archive status of a curriculum
+  const handleToggleArchivePlan = (planId: string) => {
+    setSavedPlans((prev) =>
+      prev.map((p) =>
+        p.id === planId ? { ...p, isArchived: !p.isArchived, lastModifiedAt: Date.now() } : p
+      )
+    );
+  };
 
   if (!mounted) {
     return (
@@ -997,11 +845,18 @@ export default function Home() {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         savedPlans={savedPlans}
         activePlanId={activePlanId}
-        onSelectPlan={handleSelectPlan}
+        onSelectPlan={(p) => {
+          setActivePlanId(p.id);
+          setSelectedPeriodIndex(null);
+        }}
         onDeletePlan={handleDeletePlan}
-        onOpenCreateModal={handleOpenNewPlan}
+        onOpenCreateModal={() => {
+          setError("");
+          setIsModalOpen(true);
+        }}
         onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
-        onReturnHome={handleReturnHome}
+        onOpenAbout={() => setIsAboutModalOpen(true)}
+        onReturnHome={() => setViewMode("landing")}
         activeTimer={activeTimer}
         completedTasksMap={completedTasksMap}
         activeNavTab={activeNavTab}
@@ -1014,7 +869,10 @@ export default function Home() {
         <TopBar
           activePlan={activePlan}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
-          onOpenCreateModal={handleOpenNewPlan}
+          onOpenCreateModal={() => {
+            setError("");
+            setIsModalOpen(true);
+          }}
           onOpenHistoryModal={() => setIsHistoryDrawerOpen(true)}
           onExportPDF={handleExportPDF}
           onExportMarkdown={handleExportMarkdown}
@@ -1023,10 +881,7 @@ export default function Home() {
           onFocusSearch={() => searchInputRef.current?.focus()}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          hasUnsavedChanges={hasUnsavedChanges}
-          isSaving={isSaving}
-          onSaveCurriculum={handleSaveCurriculum}
-          onDiscardChanges={handleDiscardCurriculum}
+          onOpenAbout={() => setIsAboutModalOpen(true)}
         />
 
         {/* Dynamic Section Translation */}
@@ -1061,117 +916,10 @@ export default function Home() {
                 }
               }}
             />
-          ) : activeNavTab === "settings" ? (
-            /* SECTION 4: SETTINGS */
-            <SettingsView
-              userSettings={userSettings}
-              onUpdateSettings={setUserSettings}
-              activePlan={activePlan}
-              onUpdateDraftPlan={handleUpdatePlan}
-              onDeletePlan={handleDeletePlan}
-              savedPlans={savedPlans}
-              hasUnsavedChanges={hasUnsavedChanges}
-              onSaveCurriculum={handleSaveCurriculum}
-            />
           ) : activePlan ? (
             /* DEFAULT: DASHBOARD VIEW */
+            /* DEFAULT: DASHBOARD VIEW */
             <div className="space-y-6">
-              {/* Save Success Toast Banner */}
-              {saveSuccessMessage && (
-                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-3 shadow-2xs animate-fade-in">
-                  <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="font-semibold">{saveSuccessMessage}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSaveSuccessMessage(null)}
-                    className="text-emerald-700 hover:text-emerald-950 cursor-pointer p-1"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-
-              {/* Unsaved Changes Banner: Newly generated plan vs edited draft */}
-              {hasUnsavedChanges && (
-                !lastSavedPlan ? (
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
-                    <div className="flex items-start sm:items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <h3 className="text-xs font-bold text-emerald-950 flex items-center gap-2">
-                          <span>Curriculum Generated for &ldquo;{activePlan.subject}&rdquo;</span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-200/90 text-emerald-900 text-[10px] font-mono font-semibold">
-                            Unsaved Review Draft
-                          </span>
-                        </h3>
-                        <p className="text-[11px] text-emerald-800">
-                          Review your synthesized curriculum below. Click <strong>Save Curriculum</strong> to store it in your Study History.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleDiscardCurriculum}
-                        className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
-                      >
-                        Discard
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSaveCurriculum}
-                        disabled={isSaving}
-                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs active:scale-95"
-                      >
-                        {isSaving ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Save className="w-3.5 h-3.5" />
-                        )}
-                        <span>Save Curriculum</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs animate-fade-in text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                      <div>
-                        <span className="font-bold text-amber-900">Unsaved Changes:</span>
-                        <span className="ml-1 text-amber-800">
-                          You have modified this curriculum. Click Save to make your changes permanent.
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleDiscardCurriculum}
-                        className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100/60 text-slate-700 text-[11px] font-semibold border border-amber-200 transition cursor-pointer"
-                      >
-                        Discard Changes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSaveCurriculum}
-                        disabled={isSaving}
-                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer shadow-xs"
-                      >
-                        {isSaving ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Save className="w-3 h-3" />
-                        )}
-                        <span>Save</span>
-                      </button>
-                    </div>
-                  </div>
-                )
-              )}
               {/* Onboarding Context Banner (if user transitioned from onboarding) */}
               {onboardingSelection && (
                 <div className="p-3.5 rounded-xl bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950 flex flex-wrap items-center justify-between gap-3 shadow-2xs animate-fade-in">
@@ -1207,11 +955,10 @@ export default function Home() {
               {/* PDF Export Feedback Alert */}
               {exportFeedback && (
                 <div
-                  className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 shadow-2xs transition animate-fade-in ${
-                    exportFeedback.type === "success"
+                  className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 shadow-2xs transition animate-fade-in ${exportFeedback.type === "success"
                       ? "bg-emerald-50 border-emerald-200 text-emerald-900"
                       : "bg-red-50 border-red-200 text-red-900"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2.5">
                     {exportFeedback.type === "success" ? (
@@ -1245,7 +992,6 @@ export default function Home() {
                     ? activePlan.schedule[selectedPeriodIndex]?.period_label
                     : "All Periods"
                 }
-                userSettings={userSettings}
                 onSelectPeriodLabel={(label) => {
                   if (label === "All Periods") {
                     setSelectedPeriodIndex(null);
@@ -1258,148 +1004,126 @@ export default function Home() {
 
               {/* Today's Focus Schedule */}
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="space-y-0.5">
-                        <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-                          Today&apos;s Focus Schedule
-                        </h2>
-                        <p className="text-[11px] text-slate-500">
-                          Target: {userSettings.study?.dailyStudyGoalHours || 2}h daily • Weekly: {userSettings.study?.weeklyStudyTargetHours || 14}h target
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                    Today&apos;s Focus Schedule
+                  </h2>
+                </div>
+
+                {todayPriorityTask ? (
+                  <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 block">
+                          Next In Queue • {todayPriorityTask.periodLabel}
+                        </span>
+                        <h3 className="text-sm font-bold text-slate-900 leading-snug">
+                          {todayPriorityTask.task.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                          {todayPriorityTask.task.description}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {(() => {
-                          const todayIdx = new Date().getDay();
-                          const isScheduledDay = (userSettings.study?.preferredStudyDays || [1, 2, 3, 4, 5]).includes(todayIdx);
-                          const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                          return isScheduledDay ? (
-                            <span className="text-[10px] font-medium font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              Scheduled Study Day • Window: {userSettings.study?.studyStartTime || "09:00"}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-medium font-mono text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">
-                              Rest Day ({dayNames[todayIdx]}) • Self-Paced
-                            </span>
-                          );
-                        })()}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleStartFocus(
+                            todayPriorityTask.task,
+                            todayPriorityTask.taskId,
+                            todayPriorityTask.periodLabel
+                          )
+                        }
+                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Start Focus</span>
+                      </button>
                     </div>
 
-                    {todayPriorityTask ? (
-                      <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1 min-w-0">
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 block">
-                              Next In Queue • {todayPriorityTask.periodLabel}
-                            </span>
-                            <h3 className="text-sm font-bold text-slate-900 leading-snug">
-                              {todayPriorityTask.task.title}
-                            </h3>
-                            <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
-                              {todayPriorityTask.task.description}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleStartFocus(
-                                todayPriorityTask.task,
-                                todayPriorityTask.taskId,
-                                todayPriorityTask.periodLabel
-                              )
-                            }
-                            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
-                          >
-                            <Play className="w-3 h-3 fill-current" />
-                            <span>Start Focus</span>
-                          </button>
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
-                          <span className="inline-flex items-center gap-1 font-mono text-[11px]">
-                            <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                            {todayPriorityTask.task.duration_minutes} minutes
-                          </span>
-                          <span>•</span>
-                          <span className="text-[11px] font-medium">
-                            {todayPriorityTask.task.resource_type}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleTask(todayPriorityTask.taskId)}
-                            className="ml-auto text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 cursor-pointer"
-                          >
-                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Mark Done</span>
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-6 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
-                        All scheduled tasks for this curriculum are complete!
-                      </div>
-                    )}
-
-                    {/* Upcoming Tasks Section */}
-                    {upcomingTasksSlice.length > 0 && (
-                      <div className="space-y-2 pt-1">
-                        <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                          <span>Upcoming In Roadmap</span>
-                          <span className="text-[11px] text-slate-400 font-normal">
-                            {pendingTasksList.length} total pending
-                          </span>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          {upcomingTasksSlice.map((item) => (
-                            <div
-                              key={item.taskId}
-                              className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/70 border border-slate-200 flex items-center justify-between gap-3 text-xs transition"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleTask(item.taskId)}
-                                  className="w-4 h-4 rounded border border-slate-300 hover:border-emerald-500 bg-white flex items-center justify-center transition cursor-pointer shrink-0"
-                                >
-                                  <span className="sr-only">Complete task</span>
-                                </button>
-                                <div className="min-w-0">
-                                  <span className="font-semibold text-slate-900 truncate block">
-                                    {item.task.title}
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 truncate block">
-                                    {item.periodLabel}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className="font-mono text-[10px] text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
-                                  {item.task.duration_minutes}m
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleStartFocus(
-                                      item.task,
-                                      item.taskId,
-                                      item.periodLabel
-                                    )
-                                  }
-                                  className="p-1 text-slate-400 hover:text-emerald-700 rounded transition cursor-pointer"
-                                  title="Start focus"
-                                >
-                                  <Play className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                      <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        {todayPriorityTask.task.duration_minutes} minutes
+                      </span>
+                      <span>•</span>
+                      <span className="text-[11px] font-medium">
+                        {todayPriorityTask.task.resource_type}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTask(todayPriorityTask.taskId)}
+                        className="ml-auto text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Mark Done</span>
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <div className="p-6 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
+                    All scheduled tasks for this curriculum are complete!
+                  </div>
+                )}
+
+                {/* Upcoming Tasks Section */}
+                {upcomingTasksSlice.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span>Upcoming In Roadmap</span>
+                      <span className="text-[11px] text-slate-400 font-normal">
+                        {pendingTasksList.length} total pending
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {upcomingTasksSlice.map((item) => (
+                        <div
+                          key={item.taskId}
+                          className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/70 border border-slate-200 flex items-center justify-between gap-3 text-xs transition"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTask(item.taskId)}
+                              className="w-4 h-4 rounded border border-slate-300 hover:border-emerald-500 bg-white flex items-center justify-center transition cursor-pointer shrink-0"
+                            >
+                              <span className="sr-only">Complete task</span>
+                            </button>
+                            <div className="min-w-0">
+                              <span className="font-semibold text-slate-900 truncate block">
+                                {item.task.title}
+                              </span>
+                              <span className="text-[10px] text-slate-400 truncate block">
+                                {item.periodLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-mono text-[10px] text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                              {item.task.duration_minutes}m
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleStartFocus(
+                                  item.task,
+                                  item.taskId,
+                                  item.periodLabel
+                                )
+                              }
+                              className="p-1 text-slate-400 hover:text-emerald-700 rounded transition cursor-pointer"
+                              title="Start focus"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* Empty State Hero */
@@ -1425,7 +1149,6 @@ export default function Home() {
           handleToggleTask(taskId);
         }}
         onClose={() => setActiveTimer(null)}
-        userSettings={userSettings}
       />
 
       {/* Command Palette Creation Modal */}
@@ -1435,8 +1158,6 @@ export default function Home() {
         onGenerate={handleGeneratePlan}
         loading={loading}
         error={error}
-        defaultDifficulty={userSettings.study?.preferredDifficulty}
-        defaultDailyHours={userSettings.study?.dailyStudyGoalHours}
       />
 
       {/* Slide-out Plan History Drawer */}
@@ -1446,26 +1167,23 @@ export default function Home() {
         savedPlans={savedPlans}
         activePlanId={activePlanId}
         onSelectPlan={(p) => {
-          setIsHistoryDrawerOpen(false);
-          handleSelectPlan(p);
+          setActivePlanId(p.id);
+          setSelectedPeriodIndex(null);
         }}
         onDeletePlan={handleDeletePlan}
+        onRenamePlan={handleRenamePlan}
+        onToggleArchivePlan={handleToggleArchivePlan}
         onOpenNewPlanModal={() => {
-          setIsHistoryDrawerOpen(false);
-          handleOpenNewPlan();
+          setError("");
+          setIsModalOpen(true);
         }}
         completedTasksMap={completedTasksMap}
       />
 
-      {/* Unsaved Changes Confirmation Protection Modal */}
-      <UnsavedChangesModal
-        isOpen={isUnsavedModalOpen}
-        onSave={handleModalSaveAndProceed}
-        onDiscard={handleModalDiscardAndProceed}
-        onCancel={handleModalCancel}
-        isSaving={isSaving}
-        planTitle={activePlan?.subject}
-        actionContext={pendingActionContext}
+      {/* About CuratePlan Modal */}
+      <AboutModal
+        isOpen={isAboutModalOpen}
+        onClose={() => setIsAboutModalOpen(false)}
       />
     </div>
   );
